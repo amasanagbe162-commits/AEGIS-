@@ -12,12 +12,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w @aegis/core && npm run build -w @aegis/rules && npm run build -w @aegis/cli",
+    "typecheck": "npm run build && npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
+    "test": "npm run build && vitest run",
     "schemas": "npm run build && node scripts/export-schemas.mjs"
   },
   "devDependencies": {

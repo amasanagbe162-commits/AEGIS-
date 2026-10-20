@@ -27,6 +27,12 @@ All notable changes are documented here. Format based on [Keep a Changelog](http
 - Secret redaction applied to every report; text and JSON reports; exit codes 0 (clean), 1 (findings), 2 (error), 3 (incomplete).
 - `inspectProject()` entry point that never throws on bad input.
 
+- CLI (`aegis`): `init` (dry run, preview, confirmation, never overwrites), `scan`, `check`, `rules list`, `rules validate`, `doctor`, with `--help` and documented exit codes.
+- Installation and troubleshooting guides.
+
 ### Changed
+
+- Templates moved to `packages/rules/templates/` so the CLI can ship them.
+- `npm run build` builds packages in dependency order; `npm test` and `npm run typecheck` build first.
 
 - Supported Node.js versions are now 22 and 24 (Node 20 is end of life). CI matrix and `engines` updated.

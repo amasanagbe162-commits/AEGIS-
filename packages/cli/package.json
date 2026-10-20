@@ -13,5 +13,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "bin": {
+    "aegis": "dist/main.js"
+  },
+  "dependencies": {
+    "@aegis/core": "*",
+    "@aegis/rules": "*",
+    "commander": "^15.0.0"
   }
 }

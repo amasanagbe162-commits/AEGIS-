@@ -35,7 +35,7 @@ Required fields:
 
 Optional fields: `limitations`, `dangerousOperations`, `minimumSeverityToBlock`.
 
-A complete example is [`templates/AEGIS.aegis`](../templates/AEGIS.aegis). The machine-readable schema is [`aegis-master-schema.json`](aegis-master-schema.json).
+A complete example is [`packages/rules/templates/AEGIS.aegis`](../packages/rules/templates/AEGIS.aegis). The machine-readable schema is [`aegis-master-schema.json`](aegis-master-schema.json).
 
 ## 4. Rule references
 

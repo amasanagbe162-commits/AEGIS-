@@ -9,25 +9,29 @@ AEGIS is an open-source protection framework for AI coding agents such as Claude
 
 ## Status: early development
 
-This repository currently contains the project foundation, the `.aegis` format (specification, schemas, safe parser and rule loader) six starter rules, and the core engine (project detection, rule selection, reports). There is **no CLI and no scanner integration yet**, so every scan currently ends as `incomplete`.
+This repository currently contains the project foundation, the `.aegis` format (specification, schemas, safe parser and rule loader), six starter rules, and the core engine (project detection, rule selection, reports). A working CLI (`init`, `scan`, `check`, `rules`, `doctor`) is included, but there is **no scanner integration yet**, so every scan currently ends as `incomplete`.
 
-| Area                              | Status                                         |
-| --------------------------------- | ---------------------------------------------- |
-| Monorepo, lint, typecheck, tests  | Implemented                                    |
-| CI workflow                       | Implemented                                    |
-| `.aegis` format and parser        | Implemented and tested                         |
-| Protection rule library           | Started: 6 starter rules, pending human review |
-| Core engine and project detection | Implemented and tested                         |
-| CLI (`aegis init`, `scan`, ...)   | PLANNED                                        |
-| Scanner integrations              | PLANNED                                        |
-| Claude Code / Copilot integration | PLANNED                                        |
-| Optional signed rule updates      | PLANNED                                        |
+| Area                                                   | Status                                         |
+| ------------------------------------------------------ | ---------------------------------------------- |
+| Monorepo, lint, typecheck, tests                       | Implemented                                    |
+| CI workflow                                            | Implemented                                    |
+| `.aegis` format and parser                             | Implemented and tested                         |
+| Protection rule library                                | Started: 6 starter rules, pending human review |
+| Core engine and project detection                      | Implemented and tested                         |
+| CLI (`aegis init`, `scan`, `check`, `rules`, `doctor`) | Implemented and tested                         |
+| Scanner integrations                                   | PLANNED                                        |
+| Claude Code / Copilot integration                      | PLANNED                                        |
+| Optional signed rule updates                           | PLANNED                                        |
 
 See [docs/roadmap.md](docs/roadmap.md) for the phase plan.
 
 ## What AEGIS cannot guarantee
 
 AEGIS reduces risk. It cannot guarantee bug-free or vulnerability-free software. Instruction files are advisory and an agent may ignore them. Passing checks does not prove code is secure.
+
+## Try it
+
+See [docs/installation.md](docs/installation.md). In short: `npm install && npm run build && npx aegis doctor`.
 
 ## Development
 

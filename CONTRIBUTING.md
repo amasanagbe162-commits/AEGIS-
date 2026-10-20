@@ -19,7 +19,7 @@ npm run lint
 npm run format:check
 npm run typecheck
 npm run build
-npm test
+npm test   # builds first, then runs unit and real-binary tests
 ```
 
 ## Guidelines

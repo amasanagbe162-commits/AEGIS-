@@ -12,10 +12,10 @@ export const validRuleText = readFileSync(
 );
 
 export const masterTemplateText = readFileSync(
-  path.join(repoRoot, "templates/AEGIS.aegis"),
+  path.join(repoRoot, "packages/rules/templates/AEGIS.aegis"),
   "utf8",
 );
 export const configTemplateText = readFileSync(
-  path.join(repoRoot, "templates/aegis.config.json"),
+  path.join(repoRoot, "packages/rules/templates/aegis.config.json"),
   "utf8",
 );

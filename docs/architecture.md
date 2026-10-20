@@ -32,7 +32,7 @@ packages/
   rules/   bundled baseline rules as DATA files (never code) + their tests
   cli/     thin Commander layer: parses arguments, calls core, prints, sets exit codes
 formats/     JSON Schema files generated from the Zod schemas (single source of truth)
-templates/   AEGIS.aegis master file and generated-file templates
+(rules/templates)  AEGIS.aegis master file and config template, used by `aegis init` and for manual setup
 tests/       cross-package integration tests and isolated vulnerable fixtures
 ```
 

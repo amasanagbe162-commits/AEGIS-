@@ -9,7 +9,8 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "data"
+    "data",
+    "templates"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

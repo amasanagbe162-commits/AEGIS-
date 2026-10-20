@@ -82,7 +82,10 @@ describe("master template and config template", async () => {
   const { rules } = await loadRulesFromDir(RULES_DIR);
 
   it("master template is valid and all references resolve", () => {
-    const parsed = parseMasterFile(read("templates/AEGIS.aegis"), "templates/AEGIS.aegis");
+    const parsed = parseMasterFile(
+      read("packages/rules/templates/AEGIS.aegis"),
+      "packages/rules/templates/AEGIS.aegis",
+    );
     if (!parsed.ok) throw new Error(JSON.stringify(parsed.diagnostics));
     const refs = checkMasterReferences(
       parsed.value,
@@ -100,7 +103,7 @@ describe("master template and config template", async () => {
   });
 
   it("config template is valid", () => {
-    expect(parseConfig(read("templates/aegis.config.json")).ok).toBe(true);
+    expect(parseConfig(read("packages/rules/templates/aegis.config.json")).ok).toBe(true);
   });
 });
 
