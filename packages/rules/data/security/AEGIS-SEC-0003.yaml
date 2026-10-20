@@ -1,0 +1,48 @@
+id: AEGIS-SEC-0003
+title: Do not hardcode credentials in source code
+category: security
+severity: critical
+confidence: high
+languages: [javascript, typescript, python]
+frameworks: []
+description: API keys, passwords, tokens and private keys must not be written into source files or committed to version control. Load them from the environment or a secrets manager.
+risk: Anyone with access to the repository, its history, a build log or a published package can use the credential. Removing it in a later commit does not remove it from history.
+appliesWhen: Code needs a secret to call a service or connect to a database. Applies to committed files of every kind, including tests, examples and configuration.
+badExample:
+  language: javascript
+  code: |
+    // UNSAFE: a secret lives in source control. (Fictional value.)
+    const client = new PaymentClient({ apiKey: "EXAMPLE-NOT-A-REAL-KEY-0000" });
+  note: The value is fictional and for illustration only.
+goodExample:
+  language: javascript
+  code: |
+    // The secret comes from the runtime environment and fails loudly if missing.
+    const apiKey = process.env.PAYMENT_API_KEY;
+    if (!apiKey) {
+      throw new Error("PAYMENT_API_KEY is not set");
+    }
+    const client = new PaymentClient({ apiKey });
+  note: Keep real values in an untracked .env file or a secrets manager and commit only a .env.example with placeholder values.
+reasoning: Secrets kept outside the repository can be rotated and scoped per environment without changing code, and they never enter version history.
+assumptions:
+  - The deployment environment has a way to provide environment variables or secrets securely.
+limitations:
+  - Environment variables can still leak through logs, crash dumps or child processes.
+  - Pattern-based detection misses secrets that do not match known formats and may flag harmless test values.
+prevention:
+  - Read secrets from the environment or a secrets manager.
+  - Add .env files to .gitignore and commit only a .env.example with fake values.
+  - Run a secret scanner before committing.
+verification:
+  - Run a secret scanner over the working tree and history when the tool is available.
+  - If a real credential was committed, treat it as compromised and rotate it.
+references:
+  - https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password
+  - https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+scanner:
+  tool: gitleaks
+tests:
+  - A fixture containing an obviously fictional key should be reported once the Gitleaks integration exists (Phase 5). Detection depends on the scanner's own rules.
+version: 1.0.0
+status: proposed

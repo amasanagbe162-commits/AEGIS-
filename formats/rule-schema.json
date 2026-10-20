@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^AEGIS-(UNI|SEC|COD|DEP|CFG|TST|ARC)-\\d{4}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "universal",
+        "security",
+        "coding-errors",
+        "dependencies",
+        "configuration",
+        "testing",
+        "architecture"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "informational"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "languages": {
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9.+#-]{0,39}$"
+      }
+    },
+    "frameworks": {
+      "default": [],
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9.+#-]{0,39}$"
+      }
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "risk": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "appliesWhen": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "badExample": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.+#-]{0,39}$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "language",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "goodExample": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.+#-]{0,39}$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "language",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "reasoning": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "assumptions": {
+      "minItems": 1,
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "limitations": {
+      "minItems": 1,
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "prevention": {
+      "minItems": 1,
+      "maxItems": 15,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "verification": {
+      "minItems": 1,
+      "maxItems": 15,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "references": {
+      "default": [],
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300,
+        "format": "uri"
+      }
+    },
+    "scanner": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string",
+          "enum": [
+            "semgrep",
+            "gitleaks",
+            "osv-scanner",
+            "npm-audit",
+            "eslint",
+            "tsc"
+          ]
+        },
+        "ruleRef": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9@._:/-]{1,120}$"
+        }
+      },
+      "required": [
+        "tool"
+      ],
+      "additionalProperties": false
+    },
+    "tests": {
+      "default": [],
+      "maxItems": 15,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "approved",
+        "rejected",
+        "superseded"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "category",
+    "severity",
+    "confidence",
+    "languages",
+    "description",
+    "risk",
+    "appliesWhen",
+    "badExample",
+    "goodExample",
+    "reasoning",
+    "assumptions",
+    "limitations",
+    "prevention",
+    "verification",
+    "version",
+    "status"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,52 @@
+id: AEGIS-SEC-0001
+title: Prevent SQL injection
+category: security
+severity: critical
+confidence: high
+languages: [javascript, typescript]
+frameworks: [node.js]
+description: Untrusted input must not be concatenated or interpolated into SQL text. Pass it as bound parameters instead.
+risk: An attacker who controls part of the query text can read, change or delete data, or bypass authentication checks that rely on the query.
+appliesWhen: Any code builds a SQL statement that includes a value originating outside the program (request data, files, other services), including values read back from the database that were stored earlier.
+badExample:
+  language: javascript
+  code: |
+    // UNSAFE: user input becomes part of the SQL text.
+    const result = await pool.query(
+      "SELECT id, email FROM users WHERE email = '" + req.query.email + "'",
+    );
+  note: An input such as  ' OR '1'='1  changes the meaning of the query.
+goodExample:
+  language: javascript
+  code: |
+    // Parameterized: the SQL text is fixed and the value is sent separately.
+    const result = await pool.query(
+      "SELECT id, email FROM users WHERE email = $1",
+      [req.query.email],
+    );
+  note: Shown with the node-postgres driver, which uses $1 placeholders. Other drivers use ? or named parameters.
+reasoning: Parameterized queries keep the SQL structure and the data in separate channels, so data can never be parsed as SQL syntax.
+assumptions:
+  - The database driver or ORM supports bound parameters and is used as documented.
+limitations:
+  - Placeholders cannot be used for identifiers such as table or column names. Those need an allowlist of known values.
+  - Parameterization does not replace input validation or authorization checks.
+  - ORM raw-query escape hatches can reintroduce the problem.
+prevention:
+  - Use bound parameters or a query builder for every value.
+  - Allowlist dynamic identifiers (column names, sort direction) instead of interpolating them.
+  - Give the application database user only the permissions it needs.
+verification:
+  - Search the change for string concatenation or template literals inside SQL text.
+  - Run the relevant tests, including one with a quote character in the input.
+  - Review any raw-query calls in ORM code.
+references:
+  - https://owasp.org/www-community/attacks/SQL_Injection
+  - https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+scanner:
+  tool: semgrep
+tests:
+  - A fixture containing string-built SQL should be reported once the Semgrep integration exists (Phase 5).
+  - A fixture using bound parameters should not be reported.
+version: 1.0.0
+status: proposed

@@ -1,0 +1,54 @@
+id: AEGIS-SEC-0004
+title: Verify resource ownership on the server
+category: security
+severity: high
+confidence: medium
+languages: [javascript, typescript]
+frameworks: [express]
+description: An authenticated user must only access records they are allowed to access. The server must check ownership or permission for every record, not just check that someone is logged in.
+risk: Without the check, a user can change an identifier in a request and read or modify another user's data (an insecure direct object reference).
+appliesWhen: An endpoint reads or changes a record chosen by an identifier supplied by the client, and records belong to specific users, organizations or roles.
+badExample:
+  language: javascript
+  code: |
+    // UNSAFE: any logged-in user can read any invoice by guessing ids.
+    app.get("/invoices/:id", requireLogin, async (req, res) => {
+      const invoice = await db.invoices.findById(req.params.id);
+      res.json(invoice);
+    });
+goodExample:
+  language: javascript
+  code: |
+    // The query is scoped to the authenticated user's own records.
+    app.get("/invoices/:id", requireLogin, async (req, res) => {
+      const invoice = await db.invoices.findOne({
+        id: req.params.id,
+        ownerId: req.user.id,
+      });
+      if (!invoice) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      res.json(invoice);
+    });
+  note: Returning 404 rather than 403 avoids confirming that another user's record exists. Whether to do so is a design choice.
+reasoning: The server is the only place an authorization decision can be trusted. Hiding buttons or relying on unguessable ids in the client does not enforce access.
+assumptions:
+  - req.user is set by trusted authentication middleware and cannot be influenced by the request body.
+  - Each record has a clear owner or permission model.
+limitations:
+  - Applications with roles, teams or sharing need a fuller permission check than a single owner column.
+  - Static tools find this class of flaw poorly, so tests and review matter more than scanning.
+prevention:
+  - Scope every query by the authenticated principal or run an explicit permission check.
+  - Centralize authorization logic instead of repeating it per route.
+  - Never take the user id or role from the request body.
+verification:
+  - Write a test that logs in as user A and requests user B's record, and expect a denial.
+  - Review every route that takes an identifier from the client.
+references:
+  - https://owasp.org/Top10/A01_2021-Broken_Access_Control/
+  - https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
+tests:
+  - An integration test requesting another user's record should receive a denial. Automated detection is not expected from scanners.
+version: 1.0.0
+status: proposed

@@ -9,19 +9,19 @@ AEGIS is an open-source protection framework for AI coding agents such as Claude
 
 ## Status: early development
 
-This repository currently contains **only the project foundation** (tooling, CI, and community files). No scanning, rules, or CLI commands exist yet.
+This repository currently contains the project foundation, the `.aegis` format (specification, schemas, safe parser and rule loader) and six starter rules. There is **no CLI and no scanning yet**.
 
-| Area                              | Status      |
-| --------------------------------- | ----------- |
-| Monorepo, lint, typecheck, tests  | Implemented |
-| CI workflow                       | Implemented |
-| `.aegis` format and parser        | PLANNED     |
-| Protection rule library           | PLANNED     |
-| Core engine and project detection | PLANNED     |
-| CLI (`aegis init`, `scan`, ...)   | PLANNED     |
-| Scanner integrations              | PLANNED     |
-| Claude Code / Copilot integration | PLANNED     |
-| Optional signed rule updates      | PLANNED     |
+| Area                              | Status                                         |
+| --------------------------------- | ---------------------------------------------- |
+| Monorepo, lint, typecheck, tests  | Implemented                                    |
+| CI workflow                       | Implemented                                    |
+| `.aegis` format and parser        | Implemented and tested                         |
+| Protection rule library           | Started: 6 starter rules, pending human review |
+| Core engine and project detection | PLANNED                                        |
+| CLI (`aegis init`, `scan`, ...)   | PLANNED                                        |
+| Scanner integrations              | PLANNED                                        |
+| Claude Code / Copilot integration | PLANNED                                        |
+| Optional signed rule updates      | PLANNED                                        |
 
 See [docs/roadmap.md](docs/roadmap.md) for the phase plan.
 

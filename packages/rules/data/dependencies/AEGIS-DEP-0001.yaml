@@ -1,0 +1,45 @@
+id: AEGIS-DEP-0001
+title: Verify packages before installing them
+category: dependencies
+severity: medium
+confidence: medium
+languages: [javascript, typescript]
+frameworks: [node.js]
+description: Do not install or upgrade a dependency without the user's approval. Check that the package name is exactly the intended one and that it is maintained, then review the resulting lockfile change.
+risk: A misspelled or look-alike package name (typosquatting) or a compromised release can run malicious code on install or at runtime. Unplanned upgrades can also break the application.
+appliesWhen: A change adds a new dependency, changes a version range, or runs an install or update command.
+badExample:
+  language: shell
+  code: |
+    # UNSAFE: a one-letter typo could install a different, malicious package,
+    # and nothing is reviewed before it runs.
+    npm install expresss
+goodExample:
+  language: shell
+  code: |
+    # Inspect the package first, then install a specific version and review the diff.
+    npm view express name version maintainers repository.url
+    npm install express@5.1.0
+    git diff package.json package-lock.json
+  note: The version number is an example. Choose the version the project actually needs.
+reasoning: Checking the exact name and metadata first catches look-alike packages, and reviewing the lockfile diff shows what was actually added.
+assumptions:
+  - The project uses npm and commits its lockfile.
+limitations:
+  - Metadata checks reduce risk but cannot prove a package is safe.
+  - Other package managers and ecosystems need equivalent steps.
+prevention:
+  - Ask the user before adding or upgrading dependencies.
+  - Prefer well-known, maintained packages and avoid adding one for trivial functionality.
+  - Consider the --ignore-scripts option when evaluating an unfamiliar package.
+verification:
+  - Review the lockfile diff for unexpected packages.
+  - Run npm audit and the project's tests after the change.
+references:
+  - https://docs.npmjs.com/cli/v10/commands/npm-audit
+scanner:
+  tool: npm-audit
+tests:
+  - An integration test should confirm that a project with a lockfile change is flagged for review once dependency checks exist (Phase 5).
+version: 1.0.0
+status: proposed

@@ -1,0 +1,55 @@
+id: AEGIS-COD-0001
+title: Handle asynchronous errors explicitly
+category: coding-errors
+severity: medium
+confidence: high
+languages: [javascript, typescript]
+frameworks: [node.js]
+description: Every promise must be awaited or have its rejection handled. A rejected promise that nobody handles can crash the process or fail silently, depending on the runtime and version.
+risk: Operations appear to succeed while the work failed, requests hang without a response, or the process terminates unexpectedly.
+appliesWhen: Code calls an async function or a promise-returning API, particularly in event handlers, callbacks, timers and route handlers.
+badExample:
+  language: javascript
+  code: |
+    // UNSAFE: the call is not awaited, so a failure is never handled
+    // and the response is sent before the work finishes.
+    app.post("/orders", (req, res) => {
+      saveOrder(req.body);
+      res.status(201).end();
+    });
+goodExample:
+  language: javascript
+  code: |
+    // The failure is caught and reported to the caller.
+    app.post("/orders", async (req, res) => {
+      try {
+        await saveOrder(req.body);
+        res.status(201).end();
+      } catch (err) {
+        console.error("saveOrder failed", err);
+        res.status(500).json({ error: "Could not save order" });
+      }
+    });
+  note: Express 5 forwards rejected promises from async handlers to its error handler. Older versions do not, so check the version in use.
+reasoning: Awaiting the promise makes the outcome part of the control flow, so the response reflects whether the work actually happened.
+assumptions:
+  - The caller needs the result or the failure of the operation before responding.
+limitations:
+  - Intentional fire-and-forget work is valid, but it still needs its own error handling such as a catch that logs.
+  - Do not log sensitive request data when reporting errors.
+prevention:
+  - Use await or return the promise, and handle errors in a try/catch or a central error handler.
+  - Enable lint rules such as no-floating-promises where available.
+verification:
+  - Run tests that make the dependency fail and confirm the caller sees an error.
+  - Run the linter with floating-promise checks enabled.
+references:
+  - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+  - https://typescript-eslint.io/rules/no-floating-promises/
+scanner:
+  tool: eslint
+  ruleRef: "@typescript-eslint/no-floating-promises"
+tests:
+  - A fixture with an unawaited promise should be reported by the ESLint rule once the ESLint integration exists (Phase 5).
+version: 1.0.0
+status: proposed

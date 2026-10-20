@@ -85,7 +85,7 @@ Key property: a skipped or failed check is a first-class result in the report. A
 5. **Wrap mature scanners, do not rebuild them.** AEGIS adds orchestration, normalization and honest reporting.
 6. **Findings carry both severity and confidence,** and a status that distinguishes finding, warning, confirmed failure, tool error, skipped check and unverified suggestion.
 7. **Protection levels are configuration,** not separate code paths: standard, advanced and maximum change which rules and checks are selected.
-8. **`.aegis` syntax is decided in Phase 2.** Constraint carried forward: it must be parseable with a safe parser, produce line-numbered diagnostics, and convert cleanly into `CLAUDE.md` and Copilot instruction files.
+8. **`.aegis` is a restricted YAML 1.2 document** (decided in Phase 2): core schema only, no aliases or custom tags, strict unknown-field rejection, line-numbered diagnostics. Rules are separate YAML files. See `formats/aegis-file-spec.md`.
 9. **Minimal dependencies.** Expected runtime dependencies: `zod`, `commander`, and one safe YAML/front-matter parser. Each addition needs a reason.
 
 ## 7. Feature status

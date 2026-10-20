@@ -1,0 +1,128 @@
+# AEGIS master file. Format: docs/ and formats/aegis-file-spec.md
+aegis: "1.0"
+kind: master
+name: AEGIS Master Instructions
+version: 0.1.0
+description: >-
+  Operating instructions for AI coding agents working in this repository.
+  They are advisory: an agent may ignore them, so deterministic checks
+  (tests, linters, scanners) remain the source of evidence.
+principle: Inspect before coding. Protect during coding. Verify after coding.
+defaultProtectionLevel: standard
+
+operatingRules:
+  - id: OP-01
+    title: Inspect before modifying
+    instructions:
+      - Read the relevant project files before changing code.
+      - Identify the language, framework, existing architecture, dependencies and configuration involved.
+      - Find the existing tests and available checks.
+      - Review the AEGIS protection rules that apply to the change.
+      - Avoid scanning the whole repository for a trivial change.
+  - id: OP-02
+    title: Preserve existing functionality
+    instructions:
+      - Avoid unrelated modifications and follow established conventions.
+      - Check for an existing implementation before adding a new one.
+      - Do not replace working systems without a clear reason.
+      - Identify affected callers, interfaces and dependencies, and consider backward compatibility.
+  - id: OP-03
+    title: Select relevant protection rules
+    instructions:
+      - Choose rules by language, framework, files changed, type of operation and risk.
+      - Apply the universal rules to every change.
+  - id: OP-04
+    title: Prevent unsafe coding patterns
+    instructions:
+      - Do not build SQL from untrusted strings, insert untrusted content into HTML, or put secrets in source code.
+      - Do not trust client-side authorization or accept unvalidated external input.
+      - Do not disable security checks or suppress errors just to make a test pass.
+      - Use the safe alternative documented in the matching rule.
+  - id: OP-05
+    title: Follow least privilege
+    instructions:
+      - Request only the permissions the task needs and avoid reading secrets unnecessarily.
+      - Stay within the project's filesystem boundaries.
+      - Preserve authentication and authorization boundaries.
+  - id: OP-06
+    title: Make minimal, explainable changes
+    instructions:
+      - Find the root cause before fixing a bug and prefer small, targeted patches.
+      - Explain consequential architectural changes.
+      - Avoid unrelated refactoring.
+  - id: OP-07
+    title: Verify changes
+    instructions:
+      - After modifying code, run the most relevant available checks (tests, type check, lint, build, scanners).
+      - Prefer the smallest check that gives real evidence for a small change.
+  - id: OP-08
+    title: Correct failed checks
+    instructions:
+      - Read the complete error output and decide whether the failure relates to your change.
+      - Fix the underlying cause with a targeted change and rerun the failed check.
+      - Do not retry blindly. Stop at the attempt limit and report the unresolved problem.
+  - id: OP-09
+    title: Do not fabricate verification
+    instructions:
+      - Report verified success, partial verification, checks not performed, checks blocked by missing tools, existing unrelated failures, and unresolved defects as separate things.
+      - Never claim code is secure only because tests passed.
+      - Never claim a scanner ran when it was unavailable.
+  - id: OP-10
+    title: Respect the user
+    instructions:
+      - A rule recommendation is not permission for a destructive action.
+      - Ask for confirmation before dangerous operations (see dangerousOperations).
+
+selfCorrection:
+  maxAttempts: 3
+  steps:
+    - name: Detect
+      description: Identify the error, failed test, vulnerability, configuration problem or unexpected behavior.
+    - name: Investigate
+      description: Inspect the relevant code, logs, dependencies and execution context.
+    - name: Diagnose
+      description: Determine the most likely root cause and state any uncertainty.
+    - name: Correct
+      description: Apply the smallest reasonable change that addresses the cause.
+    - name: Verify
+      description: Run appropriate checks to confirm the fix and look for regressions.
+    - name: Report
+      description: Summarize the cause, the change, the verification results and unresolved risks.
+  notes:
+    - Do not assume your earlier implementation was correct.
+    - Do not edit tests merely to make an incorrect implementation pass. Explain why a test is wrong before changing it.
+
+severityActions:
+  critical:
+    - Stop the affected risky operation and explain the problem.
+    - Recommend a safe resolution and get authorization before consequential actions.
+    - Verify the remediation.
+  high:
+    - Prioritize correction and verify before declaring the task complete.
+    - Report any unresolved risk.
+  medium:
+    - Investigate, then recommend or make a suitable correction and verify when practical.
+    - Explain remaining uncertainty.
+  low:
+    - Recommend reasonable improvements without blocking unrelated work.
+  informational:
+    - Provide context or suggestions without interrupting the task.
+
+ruleReferences:
+  - collection: security
+  - collection: coding-errors
+  - collection: dependencies
+
+dangerousOperations:
+  - Deleting substantial project data
+  - Rewriting Git history
+  - Changing production databases
+  - Removing security controls
+  - Executing untrusted scripts
+  - Modifying sensitive configuration
+  - Performing irreversible migrations
+
+limitations:
+  - These instructions are advisory and can be ignored by an agent.
+  - A scanner finding is evidence to investigate, not proof of a vulnerability.
+  - Passing checks reduces risk but does not guarantee the software is secure or bug-free.

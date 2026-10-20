@@ -1,0 +1,45 @@
+id: AEGIS-SEC-0002
+title: Prevent cross-site scripting (XSS)
+category: security
+severity: high
+confidence: high
+languages: [javascript, typescript]
+frameworks: []
+description: Untrusted content must not be inserted into a page as HTML. Insert it as text, or sanitize it with a maintained library when HTML is genuinely required.
+risk: Injected script runs in the victim's browser and can read page data, perform actions as the user, or steal session information that is not protected by HttpOnly cookies.
+appliesWhen: Code writes a value that originated outside the program into the DOM or into server-rendered HTML, especially through innerHTML, document.write, or framework escape hatches such as dangerouslySetInnerHTML.
+badExample:
+  language: javascript
+  code: |
+    // UNSAFE: the comment is parsed as HTML.
+    commentElement.innerHTML = comment.text;
+  note: A comment containing an element with an onerror handler would execute script.
+goodExample:
+  language: javascript
+  code: |
+    // Text assignment: the browser does not parse it as HTML.
+    commentElement.textContent = comment.text;
+  note: If rich text is required, sanitize with a maintained library such as DOMPurify and keep a Content-Security-Policy as defense in depth.
+reasoning: Assigning to textContent treats the value purely as characters, so markup in it is displayed rather than interpreted.
+assumptions:
+  - The content is displayed in an HTML context. Other contexts (attributes, URLs, inline scripts, CSS) need different escaping.
+limitations:
+  - Sanitizers must be kept up to date and configured with a strict allowlist.
+  - Escaping rules differ by output context, so one technique does not cover every case.
+  - A Content-Security-Policy reduces impact but does not replace correct output handling.
+prevention:
+  - Prefer text-based DOM APIs and framework default escaping.
+  - Avoid raw-HTML APIs unless required, and sanitize before using them.
+  - Set a Content-Security-Policy where the application allows it.
+verification:
+  - Search the change for innerHTML, outerHTML, document.write and dangerouslySetInnerHTML.
+  - Test with input containing angle brackets and quotes and confirm it renders as text.
+references:
+  - https://owasp.org/www-community/attacks/xss/
+  - https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+scanner:
+  tool: semgrep
+tests:
+  - A fixture assigning untrusted data to innerHTML should be reported once the Semgrep integration exists (Phase 5).
+version: 1.0.0
+status: proposed

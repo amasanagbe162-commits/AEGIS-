@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "number",
+      "const": 1
+    },
+    "protectionLevel": {
+      "default": "standard",
+      "type": "string",
+      "enum": [
+        "standard",
+        "advanced",
+        "maximum"
+      ]
+    },
+    "masterFile": {
+      "default": "AEGIS.aegis",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 260
+    },
+    "agents": {
+      "default": [],
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "claude-code",
+          "github-copilot"
+        ]
+      }
+    },
+    "ruleCollections": {
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "universal",
+          "security",
+          "coding-errors",
+          "dependencies",
+          "configuration",
+          "testing",
+          "architecture"
+        ]
+      }
+    },
+    "disabledRules": {
+      "default": [],
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^AEGIS-(UNI|SEC|COD|DEP|CFG|TST|ARC)-\\d{4}$"
+      }
+    },
+    "scan": {
+      "default": {
+        "exclude": [],
+        "maxFileSizeKb": 1024
+      },
+      "type": "object",
+      "properties": {
+        "exclude": {
+          "default": [],
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          }
+        },
+        "maxFileSizeKb": {
+          "default": 1024,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10240
+        }
+      },
+      "additionalProperties": false
+    },
+    "selfCorrection": {
+      "default": {
+        "maxAttempts": 3
+      },
+      "type": "object",
+      "properties": {
+        "maxAttempts": {
+          "default": 3,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "updates": {
+      "default": {
+        "enabled": false
+      },
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false
+}

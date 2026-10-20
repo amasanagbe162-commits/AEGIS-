@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "protectionLevel": "standard",
+  "masterFile": "AEGIS.aegis",
+  "agents": [],
+  "disabledRules": [],
+  "scan": { "exclude": [], "maxFileSizeKb": 1024 },
+  "selfCorrection": { "maxAttempts": 3 },
+  "updates": { "enabled": false }
+}
