@@ -9,7 +9,7 @@ AEGIS is an open-source protection framework for AI coding agents such as Claude
 
 ## Status: early development
 
-This repository currently contains the project foundation, the `.aegis` format (specification, schemas, safe parser and rule loader) and six starter rules. There is **no CLI and no scanning yet**.
+This repository currently contains the project foundation, the `.aegis` format (specification, schemas, safe parser and rule loader) six starter rules, and the core engine (project detection, rule selection, reports). There is **no CLI and no scanner integration yet**, so every scan currently ends as `incomplete`.
 
 | Area                              | Status                                         |
 | --------------------------------- | ---------------------------------------------- |
@@ -17,7 +17,7 @@ This repository currently contains the project foundation, the `.aegis` format (
 | CI workflow                       | Implemented                                    |
 | `.aegis` format and parser        | Implemented and tested                         |
 | Protection rule library           | Started: 6 starter rules, pending human review |
-| Core engine and project detection | PLANNED                                        |
+| Core engine and project detection | Implemented and tested                         |
 | CLI (`aegis init`, `scan`, ...)   | PLANNED                                        |
 | Scanner integrations              | PLANNED                                        |
 | Claude Code / Copilot integration | PLANNED                                        |

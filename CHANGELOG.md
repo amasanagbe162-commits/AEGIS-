@@ -20,6 +20,13 @@ All notable changes are documented here. Format based on [Keep a Changelog](http
 - Six starter rules (SQL injection, XSS, hardcoded credentials, server-side ownership checks, async errors, package verification), all marked `proposed` pending human review.
 - Rule authoring guide.
 
+- Core engine: evidence-based project detection (Node.js, TypeScript, Next.js, Python, SQL; manifests for Rust and Go), `.gitignore`-aware indexing, secret files never read.
+- Rule selection by language, framework, status and protection level, with a recorded reason for every choice.
+- Findings model that separates findings, confirmed failures, warnings and unverified suggestions; check outcomes that separate passed, findings, failed, skipped and tool errors.
+- Protection levels (standard, advanced, maximum) as real settings; documented in `docs/protection-levels.md`.
+- Secret redaction applied to every report; text and JSON reports; exit codes 0 (clean), 1 (findings), 2 (error), 3 (incomplete).
+- `inspectProject()` entry point that never throws on bad input.
+
 ### Changed
 
 - Supported Node.js versions are now 22 and 24 (Node 20 is end of life). CI matrix and `engines` updated.

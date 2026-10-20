@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "noEmit": true, "types": ["node"] },
+  "exclude": ["tests/fixtures"],
   "include": ["packages/*/src", "packages/*/tests", "tests", "vitest.config.ts", "eslint.config.js"]
 }
