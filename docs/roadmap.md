@@ -5,7 +5,7 @@ Status values: not started, in progress, done.
 | Phase | Goal                                                  | Status      |
 | ----- | ----------------------------------------------------- | ----------- |
 | 0     | Repository foundation (tooling, CI, community files)  | done        |
-| 1     | Repository inspection and architecture design         | not started |
+| 1     | Repository inspection and architecture design         | done        |
 | 2     | `.aegis` format, schemas, master file, starter rules  | not started |
 | 3     | Core engine (detection, selection, findings, reports) | not started |
 | 4     | CLI (`init`, `scan`, `check`, `rules`, `doctor`)      | not started |

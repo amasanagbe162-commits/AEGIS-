@@ -31,7 +31,7 @@ AEGIS reduces risk. It cannot guarantee bug-free or vulnerability-free software.
 
 ## Development
 
-Requires Node.js 20 or newer.
+Requires Node.js 22 or newer.
 
 ```bash
 npm install
