@@ -9,7 +9,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const bin = path.join(root, "packages/cli/dist/main.js");
+const bin = path.join(root, "packages/cli/bin/aegis.js");
 
 /** Runs the real, built `aegis` binary in a child process. */
 async function aegis(
@@ -33,7 +33,7 @@ async function aegis(
 }
 
 beforeAll(() => {
-  if (!existsSync(bin))
+  if (!existsSync(path.join(root, "packages/cli/dist/main.js")))
     throw new Error("The CLI is not built. Run 'npm run build' (npm test does this for you).");
 });
 

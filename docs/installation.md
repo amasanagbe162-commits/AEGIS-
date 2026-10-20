@@ -29,7 +29,7 @@ Inside the repository, `npx aegis` runs the CLI. To use it in another project, r
 
 ```bash
 # one-off, from your own project folder
-node /path/to/aegis/packages/cli/dist/main.js scan
+node /path/to/aegis/packages/cli/bin/aegis.js scan
 
 # or link the command globally (undo with: npm unlink -g @aegis/cli)
 npm link -w @aegis/cli

@@ -8,14 +8,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json"
   },
   "bin": {
-    "aegis": "dist/main.js"
+    "aegis": "bin/aegis.js"
   },
   "dependencies": {
     "@aegis/core": "*",
