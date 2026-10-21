@@ -24,14 +24,17 @@ export const VERDICT_EXIT: Record<Verdict, number> = {
 };
 
 /**
- * A finding blocks when it is a finding or confirmed failure at or above the threshold.
- * Low-confidence scanner findings do not block on their own (they are leads to investigate).
- * Warnings and unverified suggestions never block.
+ * What blocks (changes the result to "findings"):
+ * - A confirmed failure (for example a type error or a lint error) always blocks. It is a
+ *   deterministic failure of a check the project itself defines, whatever the severity label.
+ * - A finding blocks when it is at or above the protection level's threshold and its confidence
+ *   is not low. Low-confidence findings are leads to investigate, not proof.
+ * - Warnings and unverified suggestions never block.
  */
 export function isBlocking(f: Finding, threshold: Severity): boolean {
-  if (f.status !== "finding" && f.status !== "confirmed-failure") return false;
-  if (!atLeast(f.severity, threshold)) return false;
-  return f.status === "confirmed-failure" || f.confidence !== "low";
+  if (f.status === "confirmed-failure") return f.severity !== "informational";
+  if (f.status !== "finding") return false;
+  return atLeast(f.severity, threshold) && f.confidence !== "low";
 }
 
 export function computeVerdict(input: {

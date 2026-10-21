@@ -11,7 +11,10 @@ const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const bin = path.join(root, "packages/cli/bin/aegis.js");
 
-/** Runs the real, built `aegis` binary in a child process. */
+/**
+ * Runs the real, built `aegis` binary in a child process. PATH is empty so the result never depends
+ * on which scanners happen to be installed: every external tool is 'not found'.
+ */
 async function aegis(
   args: string[],
   cwd = root,
@@ -20,6 +23,7 @@ async function aegis(
     const { stdout, stderr } = await exec(process.execPath, [bin, ...args], {
       cwd,
       timeout: 30_000,
+      env: { PATH: "" },
     });
     return { code: 0, stdout, stderr };
   } catch (err) {
@@ -57,6 +61,18 @@ describe("built aegis binary", () => {
     expect(r.stdout).toContain("INCOMPLETE");
     expect(r.stdout).toContain("next.js (high)");
     expect(r.stderr).toBe("");
+  });
+
+  it("says why each check did not run when the scanners are missing", async () => {
+    const r = await aegis(["scan", "tests/fixtures/nextjs-sample"]);
+    expect(r.stdout).toContain(
+      "[SKIPPED] Secret detection (gitleaks): gitleaks was not found on PATH",
+    );
+    expect(r.stdout).toContain(
+      "[SKIPPED] Static analysis (semgrep): semgrep was not found on PATH",
+    );
+    expect(r.stdout).toContain("--allow-project-tools");
+    expect(r.stdout).not.toContain("CLEAN");
   });
 
   it("emits JSON that parses", async () => {

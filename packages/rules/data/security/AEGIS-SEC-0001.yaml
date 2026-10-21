@@ -45,8 +45,10 @@ references:
   - https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
 scanner:
   tool: semgrep
+  ruleRef: aegis.js.sql-string-concat
 tests:
-  - A fixture containing string-built SQL should be reported once the Semgrep integration exists (Phase 5).
-  - A fixture using bound parameters should not be reported.
+  - tests/fixtures/vulnerable/sql.js (string-built SQL) is reported by the Semgrep rule.
+  - tests/fixtures/corrected/sql.js (bound parameters) is not reported.
+  - Known gap - SQL assembled in a variable first and passed to query() later is not detected.
 version: 1.0.0
 status: proposed

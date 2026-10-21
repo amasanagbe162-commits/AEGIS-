@@ -114,6 +114,26 @@ describe("inspectProject: honest reporting", () => {
     expect(r.findings).toHaveLength(3); // still reported
   });
 
+  it("treats a confirmed failure as blocking at every protection level, whatever its severity label", async () => {
+    for (const level of ["standard", "advanced", "maximum"] as const) {
+      const runners = {
+        ...allPass,
+        "dependency-audit": pass,
+        "dependency-vulnerabilities": pass,
+        lint: withFindings(finding({ status: "confirmed-failure", severity: "low" })),
+      };
+      expect((await run({ runners, level })).verdict).toBe("findings");
+    }
+  });
+
+  it("never lets an informational confirmed failure block", async () => {
+    const runners = {
+      ...allPass,
+      lint: withFindings(finding({ status: "confirmed-failure", severity: "informational" })),
+    };
+    expect((await run({ runners })).verdict).toBe("clean");
+  });
+
   it("treats a confirmed failure as blocking even at low confidence", async () => {
     const r = await run({
       runners: {

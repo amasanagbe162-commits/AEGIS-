@@ -109,6 +109,18 @@ export async function indexProject(
   return { files, truncated };
 }
 
+/** Returns a function that says whether a project-relative path is excluded by the root .gitignore. */
+export async function createGitignoreMatcher(
+  rootInput: string,
+): Promise<(relativePath: string) => boolean> {
+  const root = await realpath(rootInput);
+  const ig = ignore().add(await readGitignore(root));
+  return (rel) => {
+    const p = rel.split("\\").join("/").replace(/^\.\//, "");
+    return p !== "" && !p.startsWith("..") && ig.ignores(p);
+  };
+}
+
 export function createDetectionContext(root: string, files: readonly string[]): DetectionContext {
   const set = new Set(files);
   return {

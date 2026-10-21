@@ -1,5 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import os from "node:os";
+import { createDefaultRunners, type CheckRunner } from "@aegis/core";
+import { SEMGREP_RULES_FILE } from "@aegis/rules";
 
 /** Asks the person questions. Replaced by a fake in tests. */
 export interface Prompter {
@@ -20,6 +22,8 @@ export interface Runtime {
   /** True only when both input and output are a terminal. */
   interactive: boolean;
   prompter: Prompter;
+  /** Check runners by id. Real scanners in production; fakes or none in tests. */
+  runners?: Readonly<Record<string, CheckRunner>>;
 }
 
 export function createTerminalPrompter(): Prompter {
@@ -65,5 +69,6 @@ export function createRuntime(version: string): Runtime {
     version,
     interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
     prompter: createTerminalPrompter(),
+    runners: createDefaultRunners({ semgrepRulesFile: SEMGREP_RULES_FILE }),
   };
 }

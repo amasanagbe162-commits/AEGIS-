@@ -28,6 +28,8 @@ export interface InspectOptions {
   level?: ProtectionLevel;
   /** Check runners by check id. Missing entries use the "not implemented" runner. */
   runners?: Readonly<Record<string, CheckRunner>>;
+  /** Overrides scan.allowProjectTools from aegis.config.json. */
+  allowProjectTools?: boolean;
   toolVersion?: string;
   now?: () => Date;
 }
@@ -99,7 +101,15 @@ export async function inspectProject(options: InspectOptions): Promise<ScanRepor
     const runner = options.runners?.[id] ?? notImplementedRunner;
     let result: CheckResult;
     try {
-      const raw = checkOutcomeSchema.safeParse(await runner({ root, profile }));
+      const raw = checkOutcomeSchema.safeParse(
+        await runner({
+          root,
+          profile,
+          allowProjectTools:
+            options.allowProjectTools ?? configResult.config.scan.allowProjectTools,
+          timeoutMs: configResult.config.scan.toolTimeoutSeconds * 1000,
+        }),
+      );
       if (!raw.success) {
         result = {
           id: def.id,

@@ -4,7 +4,12 @@
   "masterFile": "AEGIS.aegis",
   "agents": [],
   "disabledRules": [],
-  "scan": { "exclude": [], "maxFileSizeKb": 1024 },
+  "scan": {
+    "exclude": [],
+    "maxFileSizeKb": 1024,
+    "allowProjectTools": false,
+    "toolTimeoutSeconds": 120
+  },
   "selfCorrection": { "maxAttempts": 3 },
   "updates": { "enabled": false }
 }

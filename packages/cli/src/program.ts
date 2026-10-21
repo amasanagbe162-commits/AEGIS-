@@ -16,6 +16,11 @@ const levelOption = () =>
   new Option("--level <level>", "protection level (overrides aegis.config.json)").choices(
     PROTECTION_LEVELS,
   );
+const projectToolsOption = () =>
+  new Option(
+    "--allow-project-tools",
+    "allow running tsc and eslint from the project's node_modules (this executes code that ships with the project)",
+  );
 const formatOption = () =>
   new Option("--format <format>", "output format").choices(["text", "json"]).default("text");
 
@@ -83,9 +88,19 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
     )
     .addOption(levelOption())
     .addOption(formatOption())
+    .addOption(projectToolsOption())
     .action(
-      async (p: string | undefined, o: { level?: ProtectionLevel; format: "text" | "json" }) =>
-        set(await scanCommand(rt, p, { format: o.format, ...(o.level ? { level: o.level } : {}) })),
+      async (
+        p: string | undefined,
+        o: { level?: ProtectionLevel; format: "text" | "json"; allowProjectTools?: boolean },
+      ) =>
+        set(
+          await scanCommand(rt, p, {
+            format: o.format,
+            ...(o.level ? { level: o.level } : {}),
+            ...(o.allowProjectTools ? { allowProjectTools: true } : {}),
+          }),
+        ),
     );
 
   program
@@ -93,6 +108,7 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
     .description("verification step for hooks and CI: same checks as scan, compact output")
     .addOption(levelOption())
     .addOption(formatOption())
+    .addOption(projectToolsOption())
     .option(
       "--allow-incomplete",
       "exit 0 even when some checks did not run (the output still says INCOMPLETE)",
@@ -100,12 +116,18 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
     .action(
       async (
         p: string | undefined,
-        o: { level?: ProtectionLevel; format: "text" | "json"; allowIncomplete?: boolean },
+        o: {
+          level?: ProtectionLevel;
+          format: "text" | "json";
+          allowIncomplete?: boolean;
+          allowProjectTools?: boolean;
+        },
       ) =>
         set(
           await checkCommand(rt, p, {
             format: o.format,
             ...(o.level ? { level: o.level } : {}),
+            ...(o.allowProjectTools ? { allowProjectTools: true } : {}),
             ...(o.allowIncomplete ? { allowIncomplete: true } : {}),
           }),
         ),

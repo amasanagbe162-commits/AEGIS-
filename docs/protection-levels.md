@@ -16,14 +16,18 @@ Checks are only planned when the project needs them. A TypeScript type check is 
 
 ## What the result means
 
-| Result     | Exit code | Meaning                                                                         |
-| ---------- | --------- | ------------------------------------------------------------------------------- |
-| clean      | 0         | Every planned check ran and found nothing at or above the threshold.            |
-| findings   | 1         | At least one blocking finding.                                                  |
-| error      | 2         | Invalid configuration, unreadable rules, or a missing project folder.           |
-| incomplete | 3         | Nothing blocking was found, but some planned checks did not run. **Not clean.** |
+| Result     | Exit code | Meaning                                                                                                                |
+| ---------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| clean      | 0         | Every planned check ran and found nothing blocking.                                                                    |
+| findings   | 1         | At least one blocking finding.                                                                                         |
+| error      | 2         | Invalid configuration, unreadable rules, or a missing project folder.                                                  |
+| incomplete | 3         | Nothing blocking was found, but some planned checks did not run (tool missing, failed, or not allowed). **Not clean.** |
 
-Only a finding or confirmed failure at or above the threshold blocks. Warnings, unverified suggestions and low-confidence scanner findings are reported but never block on their own, because a scanner hit is evidence to investigate, not proof.
+What blocks:
+
+- A **confirmed failure** (for example a type error or a lint error) always blocks, at every level. It is a deterministic failure of a check the project defines.
+- A **finding** blocks when it is at or above the level's threshold and its confidence is not low.
+- Warnings, unverified suggestions and low-confidence findings are reported but never block. A scanner hit is evidence to investigate, not proof.
 
 ## Trade-offs of stricter levels
 
@@ -31,6 +35,6 @@ Only a finding or confirmed failure at or above the threshold blocks. Warnings, 
 - Lower thresholds make normal work more likely to be flagged. Use `Maximum` for code where a mistake is costly.
 - Changing a level never silently removes security settings: lowering the level is an explicit edit to `aegis.config.json`.
 
-## Current limitation
+## Scanners and the result
 
-Scanner integrations are not implemented yet (Phase 5). Until then every planned check is reported as skipped, so every scan ends as `incomplete` (exit code 3). That is intended: a scan must not look clean when nothing ran.
+Checks need their tools. With none installed, every scan is `incomplete` (exit code 3) and each skipped check says why. See [scanners.md](scanners.md) for what each check runs, what it sends over the network, and how to install the tools.

@@ -1,0 +1,7 @@
+{
+  "name": "fixture-vulnerable-deps",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Test data: deliberately depends on an old lodash with known advisories. Never install or deploy.",
+  "dependencies": { "lodash": "4.17.15" }
+}

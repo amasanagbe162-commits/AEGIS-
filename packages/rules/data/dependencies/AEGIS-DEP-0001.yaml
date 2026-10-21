@@ -40,6 +40,6 @@ references:
 scanner:
   tool: npm-audit
 tests:
-  - An integration test should confirm that a project with a lockfile change is flagged for review once dependency checks exist (Phase 5).
+  - The dependency audit check reports known vulnerable versions found in package-lock.json. It does not detect typosquatted names or unplanned installs. Those are agent behavior covered by the master file instructions.
 version: 1.0.0
 status: proposed

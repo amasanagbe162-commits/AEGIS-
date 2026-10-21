@@ -1,6 +1,7 @@
 import { chmod, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import type { CheckRunner, Finding } from "@aegis/core";
 import { aegis, fixture, makeRuntime, repoRoot, withTempDir } from "./helpers.js";
 
 describe("meta", () => {
@@ -87,6 +88,95 @@ describe("scan and check", () => {
     expect(await aegis(["check", "--allow-incomplete"], c)).toBe(0);
     expect(c.stdout()).toContain("INCOMPLETE");
     expect(c.stdout()).toContain("--allow-incomplete was set");
+  });
+});
+
+describe("scan and check with scanners available", () => {
+  const pass: CheckRunner = async () => ({ outcome: "passed", findings: [] });
+  const allPass: Record<string, CheckRunner> = Object.fromEntries(
+    [
+      "secrets",
+      "static-analysis",
+      "typecheck",
+      "lint",
+      "dependency-audit",
+      "dependency-vulnerabilities",
+    ].map((id) => [id, pass]),
+  );
+  const finding: Finding = {
+    title: "Possible issue (aegis.js.sql-string-concat)",
+    message: "SQL text is built by concatenation.",
+    severity: "critical",
+    confidence: "medium",
+    status: "finding",
+    location: { file: "app.js", line: 5 },
+  };
+
+  it("scan exits 0 and says CLEAN only when every planned check passed", async () => {
+    const c = makeRuntime(fixture("nextjs-sample"), { runners: allPass });
+    expect(await aegis(["scan"], c)).toBe(0);
+    expect(c.stdout()).toContain("CLEAN");
+  });
+
+  it("scan exits 1 and prints the finding with its location", async () => {
+    const runners = {
+      ...allPass,
+      "static-analysis": async () => ({ outcome: "findings" as const, findings: [finding] }),
+    };
+    const c = makeRuntime(fixture("nextjs-sample"), { runners });
+    expect(await aegis(["scan"], c)).toBe(1);
+    expect(c.stdout()).toContain("[critical/finding, confidence medium] app.js:5");
+  });
+
+  it("check exits 1 for a blocking finding and 3 when one check could not run", async () => {
+    const blocked = makeRuntime(fixture("nextjs-sample"), {
+      runners: {
+        ...allPass,
+        secrets: async () => ({ outcome: "findings" as const, findings: [finding] }),
+      },
+    });
+    expect(await aegis(["check"], blocked)).toBe(1);
+    const missing = makeRuntime(fixture("nextjs-sample"), {
+      runners: {
+        ...allPass,
+        secrets: async () => ({
+          outcome: "skipped" as const,
+          reason: "gitleaks was not found on PATH",
+          findings: [],
+        }),
+      },
+    });
+    expect(await aegis(["check"], missing)).toBe(3);
+    expect(missing.stdout()).toContain("gitleaks was not found on PATH");
+  });
+
+  it("--allow-project-tools reaches the checks", async () => {
+    const seen: boolean[] = [];
+    const spy: CheckRunner = async (ctx) => {
+      seen.push(ctx.allowProjectTools);
+      return { outcome: "passed", findings: [] };
+    };
+    await aegis(["scan"], makeRuntime(fixture("nextjs-sample"), { runners: { typecheck: spy } }));
+    await aegis(
+      ["scan", "--allow-project-tools"],
+      makeRuntime(fixture("nextjs-sample"), { runners: { typecheck: spy } }),
+    );
+    expect(seen).toEqual([false, true]);
+  });
+
+  it("scan --format json includes the checks and findings", async () => {
+    const runners = {
+      ...allPass,
+      lint: async () => ({ outcome: "findings" as const, findings: [finding] }),
+    };
+    const c = makeRuntime(fixture("nextjs-sample"), { runners });
+    await aegis(["scan", "--format", "json"], c);
+    const report = JSON.parse(c.stdout()) as {
+      findings: { checkId: string }[];
+      checks: { outcome: string }[];
+    };
+    expect(report.findings[0]?.checkId).toBe("lint");
+    expect(report.checks.map((x) => x.outcome)).toContain("findings");
   });
 });
 

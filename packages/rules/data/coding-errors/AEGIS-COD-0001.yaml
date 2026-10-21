@@ -50,6 +50,6 @@ scanner:
   tool: eslint
   ruleRef: "@typescript-eslint/no-floating-promises"
 tests:
-  - A fixture with an unawaited promise should be reported by the ESLint rule once the ESLint integration exists (Phase 5).
+  - A project whose own ESLint config enables the rule reports unawaited promises through the lint check. AEGIS does not ship an ESLint config, and the lint check only runs when project tools are allowed.
 version: 1.0.0
 status: proposed

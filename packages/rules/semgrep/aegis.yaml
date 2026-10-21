@@ -1,0 +1,66 @@
+# AEGIS Semgrep rules. Local only: AEGIS never loads rules from the Semgrep registry.
+# Every rule names the AEGIS rule it supports in metadata.aegis_rule_id.
+# These are heuristics: they find common shapes of a problem, not every instance.
+rules:
+  - id: aegis.js.sql-string-concat
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      SQL text is built by concatenation or interpolation. Use bound parameters instead.
+    metadata:
+      aegis_rule_id: AEGIS-SEC-0001
+      aegis_severity: critical
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: $DB.query("..." + $X, ...)
+      - pattern: $DB.query($X + "...", ...)
+      - pattern: $DB.query(`...${$Y}...`, ...)
+      - pattern: $DB.execute("..." + $X, ...)
+      - pattern: $DB.execute(`...${$Y}...`, ...)
+
+  - id: aegis.js.inner-html-assignment
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      A non-constant value is assigned to innerHTML or outerHTML. Use textContent, or sanitize the HTML.
+    metadata:
+      aegis_rule_id: AEGIS-SEC-0002
+      aegis_severity: high
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: $EL.innerHTML = $X
+          - pattern: $EL.outerHTML = $X
+      - pattern-not: $EL.innerHTML = "..."
+      - pattern-not: $EL.outerHTML = "..."
+
+  - id: aegis.js.dangerously-set-inner-html
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      dangerouslySetInnerHTML receives a non-constant value. Make sure it is sanitized.
+    metadata:
+      aegis_rule_id: AEGIS-SEC-0002
+      aegis_severity: high
+      confidence: LOW
+    patterns:
+      - pattern: |
+          <$TAG dangerouslySetInnerHTML={{ __html: $X }} />
+      - pattern-not: |
+          <$TAG dangerouslySetInnerHTML={{ __html: "..." }} />
+
+  - id: aegis.js.document-write
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      document.write receives a non-constant value. Build DOM nodes with text content instead.
+    metadata:
+      aegis_rule_id: AEGIS-SEC-0002
+      aegis_severity: high
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: document.write($X)
+          - pattern: document.writeln($X)
+      - pattern-not: document.write("...")
+      - pattern-not: document.writeln("...")

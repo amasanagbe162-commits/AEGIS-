@@ -13,3 +13,11 @@ export const TEMPLATES_DIR = path.resolve(
   "..",
   "templates",
 );
+
+/** Absolute path of AEGIS's own Semgrep rules (local only; the Semgrep registry is never used). */
+export const SEMGREP_RULES_FILE = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "semgrep",
+  "aegis.yaml",
+);

@@ -30,8 +30,14 @@ All notable changes are documented here. Format based on [Keep a Changelog](http
 - CLI (`aegis`): `init` (dry run, preview, confirmation, never overwrites), `scan`, `check`, `rules list`, `rules validate`, `doctor`, with `--help` and documented exit codes.
 - Installation and troubleshooting guides.
 
+- Scanner integrations: Gitleaks (secrets), Semgrep with AEGIS's own local rules (static analysis), `npm audit`, OSV-Scanner, and the project's own `tsc` and ESLint (opt-in). Missing tools are reported as skipped, failures as tool errors.
+- Safe subprocess runner (no shell, argument arrays, fixed working directory, timeout, output cap, process-group kill, filtered environment).
+- Four Semgrep rules for AEGIS-SEC-0001 and AEGIS-SEC-0002; `scan.allowProjectTools` and `scan.toolTimeoutSeconds` config; `--allow-project-tools` flag.
+- Scanner documentation, accuracy notes and fixtures (vulnerable, corrected, vulnerable dependencies).
+
 ### Changed
 
+- A confirmed failure (type error, lint error) now always blocks, at every protection level.
 - Templates moved to `packages/rules/templates/` so the CLI can ship them.
 - `npm run build` builds packages in dependency order; `npm test` and `npm run typecheck` build first.
 

@@ -56,6 +56,19 @@ It never overwrites an existing file. If a file already exists it is kept as it 
 
 Agent instruction files (`CLAUDE.md`, Copilot instructions) are **not generated yet**. Your existing ones are never touched.
 
+## Optional scanners
+
+Without scanners, `aegis scan` works but ends as INCOMPLETE. Install the ones you want, then run `aegis doctor` to confirm AEGIS can find them:
+
+| Tool                                        | Install (see each project for your platform)                       |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| Gitleaks (secrets)                          | https://github.com/gitleaks/gitleaks                               |
+| Semgrep (static analysis)                   | `pip install semgrep` or https://semgrep.dev/docs/getting-started/ |
+| OSV-Scanner v2 (dependency vulnerabilities) | https://google.github.io/osv-scanner/                              |
+| npm (dependency audit)                      | comes with Node.js                                                 |
+
+AEGIS never installs or upgrades anything for you. TypeScript and ESLint checks use your project's own copy and need `--allow-project-tools`. Details, network requests and licenses: [scanners.md](scanners.md).
+
 ## Manual setup (no CLI)
 
 Copy the templates and edit them:

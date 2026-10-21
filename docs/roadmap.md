@@ -9,7 +9,7 @@ Status values: not started, in progress, done.
 | 2     | `.aegis` format, schemas, master file, starter rules  | done        |
 | 3     | Core engine (detection, selection, findings, reports) | done        |
 | 4     | CLI (`init`, `scan`, `check`, `rules`, `doctor`)      | done        |
-| 5     | Security tool integrations (Semgrep, Gitleaks, ...)   | not started |
+| 5     | Security tool integrations (Semgrep, Gitleaks, ...)   | done        |
 | 6     | Claude Code and GitHub Copilot integrations           | not started |
 | 7     | Self-correction and learning records                  | not started |
 | 8     | Offline baseline and optional signed updates          | not started |

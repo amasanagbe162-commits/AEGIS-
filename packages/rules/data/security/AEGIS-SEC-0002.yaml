@@ -39,7 +39,10 @@ references:
   - https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
 scanner:
   tool: semgrep
+  ruleRef: aegis.js.inner-html-assignment
 tests:
-  - A fixture assigning untrusted data to innerHTML should be reported once the Semgrep integration exists (Phase 5).
+  - tests/fixtures/vulnerable/xss.js and react.jsx are reported by the Semgrep rules.
+  - tests/fixtures/corrected/xss.js and react.jsx are not reported.
+  - Known gap - the rule cannot tell whether a value was already sanitized, so sanitized input assigned to innerHTML is also reported.
 version: 1.0.0
 status: proposed

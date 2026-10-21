@@ -10,7 +10,8 @@
   "files": [
     "dist",
     "data",
-    "templates"
+    "templates",
+    "semgrep"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

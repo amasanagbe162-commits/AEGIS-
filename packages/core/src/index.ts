@@ -10,6 +10,8 @@ export * from "./findings/model.js";
 export * from "./redaction/redact.js";
 export * from "./project-detection/index.js";
 export * from "./rule-matching/index.js";
+export * from "./process/index.js";
 export * from "./verification/index.js";
+export * from "./scanners/index.js";
 export * from "./engine/index.js";
 export * from "./reports/index.js";

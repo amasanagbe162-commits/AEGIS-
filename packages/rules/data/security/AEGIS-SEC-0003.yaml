@@ -43,6 +43,6 @@ references:
 scanner:
   tool: gitleaks
 tests:
-  - A fixture containing an obviously fictional key should be reported once the Gitleaks integration exists (Phase 5). Detection depends on the scanner's own rules.
+  - A generated project containing a high-entropy fictional key is reported by the Gitleaks check. Detection depends on Gitleaks's own rules, so low-entropy or unusual secrets can be missed.
 version: 1.0.0
 status: proposed

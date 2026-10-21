@@ -12,13 +12,10 @@ import { resolveRoot } from "../util/resolve-root.js";
 export interface ScanOptions {
   level?: ProtectionLevel;
   format?: "text" | "json";
+  allowProjectTools?: boolean;
 }
 
-async function inspect(
-  rt: Runtime,
-  pathArg: string | undefined,
-  level: ProtectionLevel | undefined,
-) {
+async function inspect(rt: Runtime, pathArg: string | undefined, opts: ScanOptions) {
   const resolved = await resolveRoot(rt, pathArg);
   if (!resolved.ok) {
     rt.err(`aegis: ${resolved.message}\n`);
@@ -28,7 +25,9 @@ async function inspect(
     root: resolved.root,
     rulesDir: RULES_DIR,
     toolVersion: rt.version,
-    ...(level ? { level } : {}),
+    ...(opts.level ? { level: opts.level } : {}),
+    ...(opts.allowProjectTools ? { allowProjectTools: true } : {}),
+    ...(rt.runners ? { runners: rt.runners } : {}),
   });
 }
 
@@ -38,7 +37,7 @@ export async function scanCommand(
   pathArg: string | undefined,
   opts: ScanOptions,
 ): Promise<number> {
-  const report = await inspect(rt, pathArg, opts.level);
+  const report = await inspect(rt, pathArg, opts);
   if (!report) return 2;
   rt.out(opts.format === "json" ? renderJson(report) : renderText(report));
   return report.exitCode;
@@ -81,7 +80,7 @@ export async function checkCommand(
   pathArg: string | undefined,
   opts: CheckOptions,
 ): Promise<number> {
-  const report = await inspect(rt, pathArg, opts.level);
+  const report = await inspect(rt, pathArg, opts);
   if (!report) return 2;
   rt.out(opts.format === "json" ? renderJson(report) : renderCheckText(report));
   if (opts.allowIncomplete && report.verdict === "incomplete") {

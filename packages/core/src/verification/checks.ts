@@ -68,14 +68,17 @@ export interface CheckResult extends CheckOutcome {
 export interface CheckContext {
   root: string;
   profile: ProjectProfile;
+  /** True when running tools installed inside the project (tsc, eslint) is allowed. */
+  allowProjectTools: boolean;
+  timeoutMs: number;
 }
 
-/** Runs one check. Real scanner runners arrive in Phase 5. */
+/** Runs one check. Real runners live in scanners/. */
 export type CheckRunner = (ctx: CheckContext) => Promise<CheckOutcome>;
 
-/** Default runner: nothing is executed, and the report says so. */
+/** Used when no runner was supplied for a check: nothing is executed, and the report says so. */
 export const notImplementedRunner: CheckRunner = async () => ({
   outcome: "skipped",
-  reason: "this check is not implemented yet (scanner integrations are planned for Phase 5)",
+  reason: "no runner was provided for this check, so it was not performed",
   findings: [],
 });
