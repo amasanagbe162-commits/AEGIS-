@@ -144,7 +144,7 @@ describe.skipIf(!hasOsv)("real osv-scanner", { timeout: 120_000 }, () => {
   });
 });
 
-describe("real tsc from the project's own node_modules", () => {
+describe("real tsc from the project's own node_modules", { timeout: 120_000 }, () => {
   it.skipIf(process.platform === "win32")(
     "reports a type error as a confirmed failure",
     async () => {
