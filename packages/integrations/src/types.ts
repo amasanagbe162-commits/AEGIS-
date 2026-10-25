@@ -26,6 +26,8 @@ export interface InstructionInput {
   checkCommand: string;
   /** Name of the project's master file, for example "AEGIS.aegis". */
   masterFileName: string;
+  /** Lessons a person reviewed and approved for this project (see `aegis learn`). */
+  lessons?: readonly { id: string; title: string; guidance: string }[];
 }
 
 /**

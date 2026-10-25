@@ -104,6 +104,17 @@ function renderFull(input: InstructionInput, detail: Detail, maxRules = Infinity
     ...verificationSection(input),
     ...reportSection(),
   ];
+  const lessons = input.lessons ?? [];
+  if (lessons.length > 0) {
+    out.push(
+      "## Lessons approved for this project",
+      "",
+      "Mistakes seen here before, reviewed by a person. Do not repeat them.",
+      "",
+      ...lessons.map((l) => `- **${l.id} ${l.title}:** ${l.guidance}`),
+      "",
+    );
+  }
   if (rules.length > 0) {
     out.push("## Protection rules for this project", "");
     if (detail === "summary") {
@@ -174,7 +185,15 @@ export function buildCompactInstructions(input: InstructionInput): string {
     `- ${r.id} (${r.severity}) ${r.title}: ${r.prevention[0] ?? r.description}`;
   const build = (count: number): string => {
     const shown = rules.slice(0, count);
+    const lessons = (input.lessons ?? []).slice(0, 5);
     const lines = [...head, ...operating, ...dangerous, ...verify];
+    if (lessons.length > 0) {
+      lines.push(
+        "",
+        "**Approved lessons for this project:**",
+        ...lessons.map((l) => `- ${l.id} ${l.title}: ${l.guidance.slice(0, 240)}`),
+      );
+    }
     if (rules.length > 0) {
       lines.push("", "**Rules for this project:**", ...shown.map(ruleLine));
       if (shown.length < rules.length) {

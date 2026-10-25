@@ -24,6 +24,8 @@ export interface Runtime {
   prompter: Prompter;
   /** Check runners by id. Real scanners in production; fakes or none in tests. */
   runners?: Readonly<Record<string, CheckRunner>>;
+  /** Clock, replaceable in tests. */
+  now?: () => Date;
   /** Reads piped standard input (used by hooks). Returns "" when nothing is piped. */
   readStdin?: () => Promise<string>;
 }

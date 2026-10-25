@@ -5,6 +5,7 @@ import {
   formatDiagnostic,
   hasErrors,
   loadProjectConfig,
+  loadRecords,
   loadRulesFromDir,
   parseMasterFile,
   type Diagnostic,
@@ -130,6 +131,19 @@ export async function runDoctor(rt: Runtime, root: string): Promise<DoctorResult
           );
       }
     }
+  }
+
+  // Learning records
+  const learned = await loadRecords(root);
+  if (learned.problems.length > 0) {
+    add(
+      "warn",
+      "Learning records",
+      `${learned.problems.map((p) => `${p.file} ${p.message}`).join("; ")}`,
+    );
+  } else if (learned.records.length > 0) {
+    const approved = learned.records.filter((r) => r.status === "approved").length;
+    add("ok", "Learning records", `${learned.records.length} valid (${approved} approved)`);
   }
 
   // Optional tools: found on PATH, never executed here

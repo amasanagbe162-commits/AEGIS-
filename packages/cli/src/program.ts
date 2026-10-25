@@ -1,5 +1,7 @@
 import { Command, CommanderError, InvalidArgumentError, Option } from "commander";
 import {
+  LEARNING_STATUSES,
+  type LearningStatus,
   CATEGORIES,
   AGENTS,
   PROTECTION_LEVELS,
@@ -19,6 +21,15 @@ import {
   validateCliCommand,
 } from "./commands/agents.js";
 import { hookClaudeStopCommand } from "./commands/hook.js";
+import {
+  learnAddCommand,
+  learnAmendCommand,
+  learnListCommand,
+  learnReviewCommand,
+  learnShowCommand,
+  learnSupersedeCommand,
+  learnVerifyCommand,
+} from "./commands/learn.js";
 
 type AgentId = (typeof AGENTS)[number];
 const agentOption = () =>
@@ -280,6 +291,116 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
         }),
       );
     });
+
+  const learn = program
+    .command("learn")
+    .description(
+      "record mistakes and verified fixes as reviewed lessons (local to this project; nothing is uploaded)",
+    );
+  learn
+    .command("add [path]")
+    .description(
+      "record an observed mistake (secrets are redacted; describe code in words, do not paste it)",
+    )
+    .requiredOption("--title <text>", "short name for the lesson")
+    .requiredOption("--issue <text>", "what went wrong")
+    .addOption(
+      new Option("--category <category>", "rule category")
+        .choices(CATEGORIES)
+        .makeOptionMandatory(),
+    )
+    .option("--language <language...>", "languages it applies to")
+    .option("--root-cause <text>", "why it happened")
+    .option("--correction <text>", "how it was fixed or should be avoided")
+    .action(
+      async (
+        p: string | undefined,
+        o: {
+          title: string;
+          issue: string;
+          category: Category;
+          language?: string[];
+          rootCause?: string;
+          correction?: string;
+        },
+      ) =>
+        set(
+          await learnAddCommand(rt, p, {
+            title: o.title,
+            issue: o.issue,
+            category: o.category,
+            ...(o.language ? { language: o.language } : {}),
+            ...(o.rootCause ? { rootCause: o.rootCause } : {}),
+            ...(o.correction ? { correction: o.correction } : {}),
+          }),
+        ),
+    );
+  learn
+    .command("list [path]")
+    .description("list learning records")
+    .addOption(new Option("--status <status>", "only this status").choices(LEARNING_STATUSES))
+    .option("--json", "machine-readable output")
+    .action(async (p: string | undefined, o: { status?: LearningStatus; json?: boolean }) =>
+      set(
+        await learnListCommand(rt, p, {
+          ...(o.status ? { status: o.status } : {}),
+          ...(o.json ? { json: true } : {}),
+        }),
+      ),
+    );
+  learn
+    .command("show <id> [path]")
+    .description("show one record with its evidence")
+    .action(async (id: string, p: string | undefined) => set(await learnShowCommand(rt, id, p)));
+  learn
+    .command("amend <id> [path]")
+    .description("add or change the root cause or correction (clears earlier verification)")
+    .option("--root-cause <text>")
+    .option("--correction <text>")
+    .action(
+      async (id: string, p: string | undefined, o: { rootCause?: string; correction?: string }) =>
+        set(
+          await learnAmendCommand(rt, id, p, {
+            ...(o.rootCause ? { rootCause: o.rootCause } : {}),
+            ...(o.correction ? { correction: o.correction } : {}),
+          }),
+        ),
+    );
+  learn
+    .command("verify <id> [path]")
+    .description(
+      "run the real checks and record the result; only a clean, complete run verifies a record",
+    )
+    .action(async (id: string, p: string | undefined) => set(await learnVerifyCommand(rt, id, p)));
+  learn
+    .command("review <id> [path]")
+    .description("approve or reject a record (approving needs a person at a terminal)")
+    .option("--approve", "approve a verified record")
+    .option("--reject", "reject a record")
+    .requiredOption("--reviewer <name>", "who is reviewing")
+    .requiredOption("--reason <text>", "why")
+    .action(
+      async (
+        id: string,
+        p: string | undefined,
+        o: { approve?: boolean; reject?: boolean; reviewer: string; reason: string },
+      ) =>
+        set(
+          await learnReviewCommand(rt, id, p, {
+            ...(o.approve ? { approve: true } : {}),
+            ...(o.reject ? { reject: true } : {}),
+            reviewer: o.reviewer,
+            reason: o.reason,
+          }),
+        ),
+    );
+  learn
+    .command("supersede <id> [path]")
+    .description("mark an approved record as replaced by another approved record")
+    .requiredOption("--by <id>", "the approved record that replaces it")
+    .action(async (id: string, p: string | undefined, o: { by: string }) =>
+      set(await learnSupersedeCommand(rt, id, p, o)),
+    );
 
   program
     .command("hook")

@@ -97,6 +97,30 @@ describe("generated instructions", () => {
   });
 });
 
+describe("approved lessons", () => {
+  const lessons = Array.from({ length: 12 }, (_, i) => ({
+    id: `LR-${String(i + 1).padStart(4, "0")}`,
+    title: `Lesson ${i + 1}`,
+    guidance: "Always pass values as bound parameters. ".repeat(20),
+  }));
+
+  it("appear in the full and compact instructions and stay inside the budgets", async () => {
+    const input = await makeInput({ lessons });
+    const full = buildFullInstructions(input);
+    expect(full).toContain("Lessons approved for this project");
+    expect(full).toContain("LR-0012");
+    const compact = buildCompactInstructions(input);
+    expect(compact).toContain("Approved lessons for this project");
+    expect(compact).toContain("LR-0005");
+    expect(compact).not.toContain("LR-0006");
+    expect(byteLength(compact)).toBeLessThanOrEqual(COMPACT_BUDGET_BYTES);
+  });
+
+  it("are absent when there are none", async () => {
+    expect(buildFullInstructions(await makeInput())).not.toContain("Lessons approved");
+  });
+});
+
 describe("agent adapters", () => {
   it("every adapter is honest about its limits and names its enforcement level", () => {
     for (const adapter of Object.values(ADAPTERS)) {

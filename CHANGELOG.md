@@ -6,6 +6,7 @@ All notable changes are documented here. Format based on [Keep a Changelog](http
 
 ### Added
 
+- Learning records (`aegis learn add|list|show|amend|verify|review|supersede`): observed -> proposed -> verified -> approved lifecycle. Verification is recorded by AEGIS from a real clean, complete check; approval needs a person at a terminal. Approved lessons are included in generated agent instructions. Secrets are redacted and pasted code is refused.
 - Agent integrations (`@aegis/integrations`, `aegis agents list|sync|verify|print`): Claude Code (`.claude/rules/aegis.md`), GitHub Copilot (path-specific instructions), OpenAI Codex (`AGENTS.md` block) and ChatGPT (paste-in text). Generated from the project's master file and selected rules, within enforced size budgets.
 - Safe file handling for generated files: hash markers, never overwrite user files, `--merge-existing` appends one marked block, symlink and race protection.
 - Claude Code Stop hook (`aegis hook claude-stop`, `--hooks`): sends Claude back for blocking findings up to `selfCorrection.maxAttempts`, never blocks on incomplete checks, fails open.

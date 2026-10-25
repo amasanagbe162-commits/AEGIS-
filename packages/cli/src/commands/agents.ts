@@ -5,6 +5,7 @@ import {
   formatDiagnostic,
   hasErrors,
   loadProjectConfig,
+  loadRecords,
   loadRulesFromDir,
   parseMasterFile,
   selectRules,
@@ -118,6 +119,11 @@ export async function buildInstructionInput(
     { profile, level, config },
   );
 
+  const learned = await loadRecords(root);
+  const lessons = learned.records
+    .filter((r) => r.status === "approved" && r.correction)
+    .map((r) => ({ id: r.id, title: r.title, guidance: r.correction ?? "" }));
+
   const cliCommand = opts.cliCommand ?? DEFAULT_CLI_COMMAND;
   return {
     ok: true,
@@ -132,6 +138,7 @@ export async function buildInstructionInput(
       cliCommand,
       checkCommand: `${cliCommand} check`,
       masterFileName: masterName,
+      ...(lessons.length > 0 ? { lessons } : {}),
     },
   };
 }

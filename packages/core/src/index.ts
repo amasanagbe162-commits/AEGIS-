@@ -15,3 +15,4 @@ export * from "./verification/index.js";
 export * from "./scanners/index.js";
 export * from "./engine/index.js";
 export * from "./reports/index.js";
+export * from "./learning/index.js";
