@@ -1,9 +1,11 @@
+import { execFile } from "node:child_process";
 import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  createEslintRunner,
   createGitleaksRunner,
   createNpmAuditRunner,
   createOsvScannerRunner,
@@ -176,6 +178,59 @@ describe("real tsc from the project's own node_modules", { timeout: 120_000 }, (
       });
 
       const skipped = await createTscRunner(deps)({ ...ctx, allowProjectTools: false });
+      expect(skipped.outcome).toBe("skipped");
+    },
+  );
+});
+
+/**
+ * ESLint is installed into a temporary project from the npm registry, so this needs network access.
+ * If the install fails the test is reported as failing, never silently passing.
+ */
+describe.skipIf(!hasNpm)("real eslint", { timeout: 180_000 }, () => {
+  it.skipIf(process.platform === "win32")(
+    "reports lint problems from the project's own ESLint and config, and passes clean code",
+    async () => {
+      const dir = await temp();
+      await writeFile(
+        path.join(dir, "package.json"),
+        JSON.stringify({
+          name: "lint-demo",
+          private: true,
+          type: "module",
+          devDependencies: { eslint: "^9" },
+        }),
+      );
+      await writeFile(
+        path.join(dir, "eslint.config.js"),
+        'export default [{ files: ["**/*.js"], rules: { eqeqeq: "error", "no-unused-vars": "warn" } }];\n',
+      );
+      await new Promise<void>((resolve, reject) =>
+        execFile(
+          "npm",
+          ["install", "--no-audit", "--no-fund", "--ignore-scripts"],
+          { cwd: dir, timeout: 150_000 },
+          (err) => (err ? reject(err) : resolve()),
+        ),
+      );
+      await writeFile(
+        path.join(dir, "bad.js"),
+        "const unused = 1;\nexport const same = (a, b) => a == b;\n",
+      );
+
+      const ctx = await context(dir, { allowProjectTools: true });
+      const bad = await createEslintRunner(deps)(ctx);
+      expect(bad.outcome).not.toBe("passed");
+      expect(bad.outcome).not.toBe("tool-error");
+      const ids = bad.findings.map((f) => `${f.location?.file}:${f.location?.line}`);
+      expect(ids).toContain("bad.js:2");
+      expect(bad.findings.some((f) => f.title.includes("eqeqeq"))).toBe(true);
+
+      await writeFile(path.join(dir, "bad.js"), "export const same = (a, b) => a === b;\n");
+      const good = await createEslintRunner(deps)(ctx);
+      expect(good.outcome).toBe("passed");
+
+      const skipped = await createEslintRunner(deps)({ ...ctx, allowProjectTools: false });
       expect(skipped.outcome).toBe("skipped");
     },
   );

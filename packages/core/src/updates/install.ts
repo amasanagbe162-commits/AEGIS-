@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { assertPlainFolderPath } from "../fs-safe.js";
 import { loadRulesFromDir, type RuleLoadResult } from "../loader/rules.js";
 import { semverSchema } from "../schemas/common.js";
 import { compareSemver, keyIdSchema, type BundleManifest } from "./bundle.js";
@@ -30,6 +31,7 @@ export interface Staged {
 /** Write the bundle's rules to a temporary folder and run the normal rule validation on them. */
 export async function stageBundle(root: string, manifest: BundleManifest): Promise<Staged> {
   const base = path.join(root, ".aegis");
+  await assertPlainFolderPath(root, ".aegis");
   await mkdir(base, { recursive: true });
   const dir = path.join(base, `rules.tmp-${process.pid}-${Date.now()}`);
   await mkdir(dir, { recursive: true });
@@ -69,6 +71,7 @@ export async function discardStaged(staged: Staged): Promise<void> {
  * the new ones are fully written and validated; if the swap fails, the old ones are put back.
  */
 export async function activateStaged(root: string, staged: Staged): Promise<void> {
+  await assertPlainFolderPath(root, ".aegis");
   const live = path.join(root, INSTALL_DIR);
   const prev = `${live}.prev-${process.pid}`;
   let hadOld = false;

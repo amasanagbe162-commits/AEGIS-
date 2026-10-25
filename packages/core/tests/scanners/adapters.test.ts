@@ -61,6 +61,23 @@ describe.each([
 });
 
 describe("gitleaks adapter", () => {
+  it("tells the user when their Gitleaks is too old to have the 'dir' command, and never passes", async () => {
+    await withTempDir(async (dir) => {
+      const { deps } = fakeDeps(
+        ["gitleaks"],
+        exited(
+          1,
+          "",
+          'Error: unknown command "dir" for "gitleaks"\nRun \'gitleaks --help\' for usage.',
+        ),
+      );
+      const r = await createGitleaksRunner(deps)(ctx(dir));
+      expect(r.outcome).toBe("tool-error");
+      expect(JSON.stringify(r)).toContain("too old");
+      expect(JSON.stringify(r)).toContain("8.28.0");
+    });
+  });
+
   const leak = (root: string, file: string, line = 3) => ({
     RuleID: "generic-api-key",
     Description: "Detected a Generic API Key",

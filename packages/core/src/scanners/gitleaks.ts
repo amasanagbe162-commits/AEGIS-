@@ -54,6 +54,12 @@ export function createGitleaksRunner(deps: ScannerDeps): CheckRunner {
     if ("done" in launched) return launched.done;
     const { exitCode, stdout, stderr } = launched.result;
 
+    // Older Gitleaks (for example 8.18) has no `dir` command and answers with this message.
+    if (/unknown command/i.test(stderr)) {
+      return toolError(
+        "this Gitleaks is too old: it has no 'dir' command (8.28.0 works). Upgrade Gitleaks to run secret detection",
+      );
+    }
     if (exitCode !== 0 && exitCode !== 1) {
       return toolError(`gitleaks exited with code ${exitCode}: ${stderrSnippet(stderr)}`);
     }

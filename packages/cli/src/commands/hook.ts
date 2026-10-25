@@ -40,13 +40,21 @@ export async function hookClaudeStopCommand(rt: Runtime): Promise<number> {
   const attemptsSoFar = await readAttempts(root, input.sessionId);
   const decision = decideStop({ report, attemptsSoFar, maxAttempts });
 
+  let notice = decision.notice;
+  let exitCode = decision.exitCode;
   try {
     await writeAttempts(root, input.sessionId, decision.attempts);
   } catch {
-    // Remembering attempts is best effort. Without it the hook blocks at most once more per turn.
+    // Without a saved counter the attempt limit cannot be enforced, so blocking could repeat
+    // forever. Fail open instead: let Claude finish and say why.
+    if (exitCode === 2) {
+      exitCode = 0;
+      notice =
+        "AEGIS found blocking findings but cannot record its attempt count (is .aegis a symbolic link or read-only?), so it did not block. Run `aegis check` to see them.";
+    }
   }
 
-  if (decision.notice) rt.out(JSON.stringify({ systemMessage: decision.notice }) + "\n");
-  if (decision.stderr) rt.err(decision.stderr + "\n");
-  return decision.exitCode;
+  if (notice) rt.out(JSON.stringify({ systemMessage: notice }) + "\n");
+  if (exitCode === 2 && decision.stderr) rt.err(decision.stderr + "\n");
+  return exitCode;
 }

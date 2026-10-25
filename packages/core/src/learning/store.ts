@@ -1,5 +1,6 @@
 import { lstat, mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { assertPlainFolderPath } from "../fs-safe.js";
 import { redactDeep } from "../redaction/redact.js";
 import { learningRecordSchema, type LearningRecord } from "./schema.js";
 
@@ -77,6 +78,7 @@ export async function saveRecord(
   const redacted = JSON.stringify(clean) !== JSON.stringify(input);
   const record = learningRecordSchema.parse(clean);
   const dir = path.join(root, DIR);
+  await assertPlainFolderPath(root, DIR);
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, `${record.id}.json`);
   const text = JSON.stringify(record, null, 2) + "\n";

@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { isBlocking, redactText, type Finding, type ScanReport } from "@aegis/core";
+import {
+  assertPlainFolderPath,
+  isBlocking,
+  redactText,
+  type Finding,
+  type ScanReport,
+} from "@aegis/core";
 
 /** The part of Claude Code's Stop hook input that AEGIS uses. */
 export interface StopHookInput {
@@ -66,6 +72,7 @@ export async function writeAttempts(
   attempts: number,
 ): Promise<void> {
   const file = stateFile(root, sessionId);
+  await assertPlainFolderPath(root, STATE_DIR);
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(path.join(path.dirname(file), ".gitignore"), "*\n", { flag: "a" }).catch(
     () => {},
