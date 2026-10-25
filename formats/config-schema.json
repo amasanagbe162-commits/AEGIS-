@@ -29,7 +29,9 @@
         "type": "string",
         "enum": [
           "claude-code",
-          "github-copilot"
+          "github-copilot",
+          "codex",
+          "chatgpt"
         ]
       }
     },

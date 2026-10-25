@@ -101,7 +101,7 @@ describe("built aegis binary", () => {
 
       await writeFile(path.join(dir, "AEGIS.aegis"), before + "# edited by me\n");
       const again = await aegis(["init", "--yes"], dir);
-      expect(again.stdout).toContain("keep    AEGIS.aegis");
+      expect(again.stdout).toContain("keep      AEGIS.aegis");
       expect(await readFile(path.join(dir, "AEGIS.aegis"), "utf8")).toBe(
         before + "# edited by me\n",
       );

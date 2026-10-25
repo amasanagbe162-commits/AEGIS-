@@ -12,7 +12,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @aegis/core && npm run build -w @aegis/rules && npm run build -w @aegis/cli",
+    "build": "npm run build -w @aegis/core && npm run build -w @aegis/rules && npm run build -w @aegis/integrations && npm run build -w @aegis/cli",
     "typecheck": "npm run build && npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",

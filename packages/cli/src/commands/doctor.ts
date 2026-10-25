@@ -14,6 +14,8 @@ import { RULES_DIR } from "@aegis/rules";
 import type { Runtime } from "../runtime.js";
 import { exists, findExecutable, readRegularFile } from "../util/fs.js";
 import { resolveRoot } from "../util/resolve-root.js";
+import { ADAPTERS, verifyFiles } from "@aegis/integrations";
+import { buildInstructionInput, collectSpecs } from "./agents.js";
 
 export type DoctorStatus = "ok" | "warn" | "fail";
 export interface DoctorItem {
@@ -105,6 +107,28 @@ export async function runDoctor(rt: Runtime, root: string): Promise<DoctorResult
       }
     } catch (err) {
       add("fail", masterFile, err instanceof Error ? err.message : "could not be read");
+    }
+  }
+
+  // Agent instruction files for the agents listed in aegis.config.json
+  if (cfg.found && !hasErrors(cfg.diagnostics) && cfg.config.agents.length > 0) {
+    const built = await buildInstructionInput(rt, root);
+    if (!built.ok) {
+      add("warn", "Agent files", `could not be checked: ${built.message}`);
+    } else {
+      for (const id of cfg.config.agents) {
+        const specs = collectSpecs([id], built.input, false).map((s) => s.spec);
+        const results = await verifyFiles(root, specs);
+        const bad = results.filter((r) => r.status !== "current" && r.status !== "present");
+        const label = ADAPTERS[id].label;
+        if (bad.length === 0) add("ok", `${label} files`, "installed and up to date");
+        else
+          add(
+            "warn",
+            `${label} files`,
+            `${bad.map((b) => `${b.path} is ${b.status}`).join("; ")}. Run 'aegis agents sync --agent ${id}'.`,
+          );
+      }
     }
   }
 

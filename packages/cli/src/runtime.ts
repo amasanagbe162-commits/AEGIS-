@@ -24,6 +24,38 @@ export interface Runtime {
   prompter: Prompter;
   /** Check runners by id. Real scanners in production; fakes or none in tests. */
   runners?: Readonly<Record<string, CheckRunner>>;
+  /** Reads piped standard input (used by hooks). Returns "" when nothing is piped. */
+  readStdin?: () => Promise<string>;
+}
+
+const MAX_STDIN_BYTES = 256 * 1024;
+const STDIN_TIMEOUT_MS = 5000;
+
+/** Read piped input with a size limit and a timeout, so a hook can never hang or be flooded. */
+export async function readPipedStdin(): Promise<string> {
+  if (process.stdin.isTTY) return "";
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const finish = () => {
+      clearTimeout(timer);
+      process.stdin.removeAllListeners("data");
+      process.stdin.removeAllListeners("end");
+      process.stdin.pause();
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    };
+    const timer = setTimeout(finish, STDIN_TIMEOUT_MS);
+    process.stdin.on("data", (c: Buffer) => {
+      size += c.length;
+      if (size > MAX_STDIN_BYTES) {
+        chunks.length = 0;
+        chunks.push(Buffer.alloc(MAX_STDIN_BYTES + 1));
+        finish();
+      } else chunks.push(c);
+    });
+    process.stdin.on("end", finish);
+    process.stdin.on("error", finish);
+  });
 }
 
 export function createTerminalPrompter(): Prompter {
@@ -70,5 +102,6 @@ export function createRuntime(version: string): Runtime {
     interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
     prompter: createTerminalPrompter(),
     runners: createDefaultRunners({ semgrepRulesFile: SEMGREP_RULES_FILE }),
+    readStdin: readPipedStdin,
   };
 }

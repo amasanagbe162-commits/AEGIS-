@@ -12,7 +12,7 @@ export const CATEGORIES = [
   "testing",
   "architecture",
 ] as const;
-export const AGENTS = ["claude-code", "github-copilot"] as const;
+export const AGENTS = ["claude-code", "github-copilot", "codex", "chatgpt"] as const;
 
 export const severitySchema = z.enum(SEVERITIES);
 export const confidenceSchema = z.enum(CONFIDENCES);

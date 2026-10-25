@@ -1,4 +1,4 @@
-import { Command, CommanderError, Option } from "commander";
+import { Command, CommanderError, InvalidArgumentError, Option } from "commander";
 import {
   CATEGORIES,
   AGENTS,
@@ -11,6 +11,27 @@ import { doctorCommand } from "./commands/doctor.js";
 import { initCommand } from "./commands/init.js";
 import { checkCommand, scanCommand } from "./commands/scan.js";
 import { rulesListCommand, rulesValidateCommand } from "./commands/rules.js";
+import {
+  agentsListCommand,
+  agentsPrintCommand,
+  agentsSyncCommand,
+  agentsVerifyCommand,
+  validateCliCommand,
+} from "./commands/agents.js";
+import { hookClaudeStopCommand } from "./commands/hook.js";
+
+type AgentId = (typeof AGENTS)[number];
+const agentOption = () =>
+  new Option("--agent <agent...>", "AI coding agent(s) to set up").choices(AGENTS);
+const cliCommandOption = () =>
+  new Option(
+    "--cli-command <command>",
+    "how agents should start AEGIS (default: npx --no-install aegis)",
+  ).argParser((v: string) => {
+    const bad = validateCliCommand(v);
+    if (bad) throw new InvalidArgumentError(bad);
+    return v;
+  });
 
 const levelOption = () =>
   new Option("--level <level>", "protection level (overrides aegis.config.json)").choices(
@@ -55,20 +76,32 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
   program
     .command("init [path]")
     .description(
-      "set up AEGIS in a project (creates aegis.config.json and AEGIS.aegis; never overwrites)",
+      "set up AEGIS in a project (creates aegis.config.json, AEGIS.aegis and agent instruction files; never overwrites)",
     )
     .addOption(levelOption())
-    .addOption(new Option("--agent <agent...>", "AI coding agent(s) you use").choices(AGENTS))
+    .addOption(agentOption())
     .option("--dry-run", "show what would be created without writing anything")
     .option("-y, --yes", "create the files without asking for confirmation")
+    .option(
+      "--merge-existing",
+      "append an AEGIS block to an existing AGENTS.md that has none (your text is kept)",
+    )
+    .option(
+      "--hooks",
+      "also register the Claude Code Stop hook (only if .claude/settings.json is absent)",
+    )
+    .addOption(cliCommandOption())
     .action(
       async (
         p: string | undefined,
         o: {
           level?: ProtectionLevel;
-          agent?: (typeof AGENTS)[number][];
+          agent?: AgentId[];
           dryRun?: boolean;
           yes?: boolean;
+          mergeExisting?: boolean;
+          hooks?: boolean;
+          cliCommand?: string;
         },
       ) =>
         set(
@@ -77,6 +110,9 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
             ...(o.agent ? { agent: o.agent } : {}),
             ...(o.dryRun ? { dryRun: true } : {}),
             ...(o.yes ? { yes: true } : {}),
+            ...(o.mergeExisting ? { mergeExisting: true } : {}),
+            ...(o.hooks ? { hooks: true } : {}),
+            ...(o.cliCommand ? { cliCommand: o.cliCommand } : {}),
           }),
         ),
     );
@@ -153,6 +189,106 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
       "validate a rule file, a folder of rules, an .aegis master file, or aegis.config.json (default: bundled rules and this project's files)",
     )
     .action(async (t: string | undefined) => set(await rulesValidateCommand(rt, t)));
+
+  const agents = program
+    .command("agents")
+    .description("set up and check instruction files for AI coding agents");
+  agents
+    .command("list")
+    .description("list supported agents, how each integration works, and what it cannot do")
+    .option("--json", "machine-readable output")
+    .action(async (o: { json?: boolean }) =>
+      set(await agentsListCommand(rt, { ...(o.json ? { json: true } : {}) })),
+    );
+  agents
+    .command("sync [path]")
+    .description(
+      "generate or refresh agent instruction files (only files AEGIS wrote; yours are never overwritten)",
+    )
+    .addOption(agentOption())
+    .addOption(levelOption())
+    .option("--dry-run", "show what would change without writing anything")
+    .option("-y, --yes", "write the files without asking for confirmation")
+    .option(
+      "--merge-existing",
+      "append an AEGIS block to an existing AGENTS.md that has none (your text is kept)",
+    )
+    .option(
+      "--hooks",
+      "also register the Claude Code Stop hook (only if .claude/settings.json is absent)",
+    )
+    .addOption(cliCommandOption())
+    .action(
+      async (
+        p: string | undefined,
+        o: {
+          agent?: AgentId[];
+          level?: ProtectionLevel;
+          dryRun?: boolean;
+          yes?: boolean;
+          mergeExisting?: boolean;
+          hooks?: boolean;
+          cliCommand?: string;
+        },
+      ) =>
+        set(
+          await agentsSyncCommand(rt, p, {
+            ...(o.agent ? { agent: o.agent } : {}),
+            ...(o.level ? { level: o.level } : {}),
+            ...(o.dryRun ? { dryRun: true } : {}),
+            ...(o.yes ? { yes: true } : {}),
+            ...(o.mergeExisting ? { mergeExisting: true } : {}),
+            ...(o.hooks ? { hooks: true } : {}),
+            ...(o.cliCommand ? { cliCommand: o.cliCommand } : {}),
+          }),
+        ),
+    );
+  agents
+    .command("verify [path]")
+    .description(
+      "check that agent instruction files are installed and up to date (changes nothing)",
+    )
+    .addOption(agentOption())
+    .addOption(cliCommandOption())
+    .option("--json", "machine-readable output")
+    .action(
+      async (
+        p: string | undefined,
+        o: { agent?: AgentId[]; cliCommand?: string; json?: boolean },
+      ) =>
+        set(
+          await agentsVerifyCommand(rt, p, {
+            ...(o.agent ? { agent: o.agent } : {}),
+            ...(o.cliCommand ? { cliCommand: o.cliCommand } : {}),
+            ...(o.json ? { json: true } : {}),
+          }),
+        ),
+    );
+  agents
+    .command("print <agent> [path]")
+    .description("print the instructions for one agent, ready to copy (nothing is written)")
+    .addOption(cliCommandOption())
+    .action(async (a: string, p: string | undefined, o: { cliCommand?: string }) => {
+      if (!(AGENTS as readonly string[]).includes(a)) {
+        rt.err(`aegis: unknown agent '${a}'. Choose one of: ${AGENTS.join(", ")}\n`);
+        set(2);
+        return;
+      }
+      set(
+        await agentsPrintCommand(rt, a as AgentId, p, {
+          ...(o.cliCommand ? { cliCommand: o.cliCommand } : {}),
+        }),
+      );
+    });
+
+  program
+    .command("hook")
+    .description("entry points that AI agents call (not for manual use)")
+    .command("claude-stop")
+    .description(
+      "Claude Code Stop hook: run the checks and send Claude back to fix blocking findings (limited by selfCorrection.maxAttempts)",
+    )
+    .action(async () => set(await hookClaudeStopCommand(rt)));
 
   program
     .command("doctor [path]")

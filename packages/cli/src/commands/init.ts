@@ -13,11 +13,20 @@ import {
   parseMasterFile,
   type ProtectionLevel,
 } from "@aegis/core";
+import { applyPlan, planFiles, type PlannedFile as AgentPlannedFile } from "@aegis/integrations";
 import { TEMPLATES_DIR } from "@aegis/rules";
 import type { Runtime } from "../runtime.js";
 import { exists, readRegularFile } from "../util/fs.js";
 import { isTooBroad } from "../util/project-root.js";
 import { resolveRoot } from "../util/resolve-root.js";
+import {
+  buildInstructionInput,
+  collectSpecs,
+  describeLimits,
+  formatPlanLine,
+  printAgentNextSteps,
+  validateCliCommand,
+} from "./agents.js";
 import { renderDoctor, runDoctor } from "./doctor.js";
 
 type Agent = (typeof AGENTS)[number];
@@ -27,12 +36,17 @@ export interface InitOptions {
   agent?: Agent[];
   dryRun?: boolean;
   yes?: boolean;
+  mergeExisting?: boolean;
+  hooks?: boolean;
+  cliCommand?: string;
 }
 
 const MASTER_FILE_NAME = "AEGIS.aegis";
 const AGENT_LABELS: Record<Agent, string> = {
   "claude-code": "Claude Code",
   "github-copilot": "GitHub Copilot",
+  codex: "OpenAI Codex (AGENTS.md)",
+  chatgpt: "ChatGPT (chat window)",
 };
 
 interface PlannedFile {
@@ -91,6 +105,14 @@ export async function initCommand(
     return 2;
   }
 
+  if (opts.cliCommand) {
+    const bad = validateCliCommand(opts.cliCommand);
+    if (bad) {
+      rt.err(`aegis: --cli-command ${bad}\n`);
+      return 2;
+    }
+  }
+
   // 1. Project
   rt.out(`Project folder: ${root}\n`);
   if (!resolved.explicit && !resolved.foundMarkers) {
@@ -139,16 +161,27 @@ export async function initCommand(
   } else if (existing.found) {
     agents = existing.config.agents;
   } else if (rt.interactive) {
-    const choices = ["Claude Code", "GitHub Copilot", "Both", "None or not sure yet"];
-    const i = await rt.prompter.select("Which AI coding agent do you use?", choices, 3);
+    const choices = [
+      "Claude Code",
+      "GitHub Copilot",
+      "OpenAI Codex (AGENTS.md)",
+      "ChatGPT (chat window)",
+      "All of them",
+      "None or not sure yet",
+    ];
+    const i = await rt.prompter.select("Which AI coding agent do you use?", choices, 5);
     agents =
       i === 0
         ? ["claude-code"]
         : i === 1
           ? ["github-copilot"]
           : i === 2
-            ? ["claude-code", "github-copilot"]
-            : [];
+            ? ["codex"]
+            : i === 3
+              ? ["chatgpt"]
+              : i === 4
+                ? [...AGENTS]
+                : [];
   } else {
     agents = [];
   }
@@ -169,24 +202,54 @@ export async function initCommand(
     },
   ];
 
+  // Agent instruction files. They are rendered from the master file that will exist after init.
+  let agentPlan: AgentPlannedFile[] = [];
+  let agentInput: Awaited<ReturnType<typeof buildInstructionInput>> | undefined;
+  if (agents.length > 0) {
+    const masterPlanned = plan[1];
+    const masterText =
+      masterPlanned && masterPlanned.action === "create"
+        ? masterPlanned.content
+        : await readRegularFile(masterPath);
+    agentInput = await buildInstructionInput(rt, root, {
+      level,
+      masterText,
+      config: existing.found
+        ? existing.config
+        : configSchema.parse({ version: 1, protectionLevel: level, agents }),
+      ...(opts.cliCommand ? { cliCommand: opts.cliCommand } : {}),
+    });
+    if (!agentInput.ok) {
+      rt.err(`aegis: ${agentInput.message}\n`);
+      return 2;
+    }
+    agentPlan = await planFiles(
+      root,
+      collectSpecs(agents, agentInput.input, opts.hooks === true).map((s) => s.spec),
+      { mergeExisting: opts.mergeExisting === true },
+    );
+  }
+
   rt.out("Plan:\n");
   for (const f of plan) {
     rt.out(
       f.action === "create"
-        ? `  create  ${f.name}\n`
-        : `  keep    ${f.name} (already exists, will not be modified)\n`,
+        ? `  create    ${f.name}\n`
+        : `  keep      ${f.name} (already exists, will not be modified)\n`,
     );
   }
+  for (const f of agentPlan) rt.out(formatPlanLine(f));
   rt.out(
     `  protection level: ${level}\n  agents: ${agents.length > 0 ? agents.map((a) => AGENT_LABELS[a]).join(", ") : "none selected"}\n\n`,
   );
 
   const toCreate = plan.filter((f) => f.action === "create");
+  const agentWrites = agentPlan.filter((f) => f.next !== undefined);
   if (opts.dryRun) {
     rt.out("Dry run: no files were written.\n");
     return 0;
   }
-  if (toCreate.length === 0) {
+  if (toCreate.length === 0 && agentWrites.length === 0) {
     rt.out("Nothing to create: everything already exists.\n");
   } else {
     if (!opts.yes) {
@@ -199,6 +262,12 @@ export async function initCommand(
       if (!(await rt.prompter.confirm("Create these files?"))) {
         rt.out("Nothing was changed.\n");
         return 0;
+      }
+    }
+    if (agentWrites.length > 0) {
+      for (const r of await applyPlan(root, agentPlan)) {
+        if (r.written) rt.out(`Wrote ${r.path}\n`);
+        else if (r.note) rt.out(`Skipped ${r.path}: ${r.note}\n`);
       }
     }
     for (const f of toCreate) {
@@ -227,12 +296,18 @@ export async function initCommand(
   rt.out("\nNext steps:\n");
   rt.out(`  1. Read ${MASTER_FILE_NAME} and adjust it to your project.\n`);
   rt.out(
-    "  2. Run 'aegis scan' to see what AEGIS detects. Until scanner integrations exist, the result is INCOMPLETE by design.\n",
+    "  2. Run 'aegis scan' to see what AEGIS detects and which checks ran. A scan is only clean when every planned check ran.\n",
   );
   rt.out("  3. Run 'aegis rules list' to see the protection rules.\n");
-  if (agents.length > 0) {
+  if (agents.length > 0 && agentInput?.ok) {
     rt.out(
-      "  4. Agent instruction files (CLAUDE.md, Copilot instructions) are NOT generated yet: that arrives in a later version. Your existing instruction files were not touched.\n",
+      "  4. Run 'aegis agents verify' any time to check the agent files are installed and current.\n",
+    );
+    rt.out("\n" + describeLimits(agents));
+    printAgentNextSteps(rt, agents, agentPlan, agentInput.input);
+  } else {
+    rt.out(
+      "  4. Run 'aegis agents list', then 'aegis agents sync --agent <agent>' to generate instruction files for your AI agent.\n",
     );
   }
   return doctor.ok ? 0 : 2;

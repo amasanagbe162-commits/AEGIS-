@@ -12,7 +12,7 @@ describe("aegis init", () => {
       await writeFile(path.join(dir, "package.json"), "{}");
       const c = makeRuntime(dir);
       expect(await aegis(["init", "--dry-run", "--level", "maximum"], c)).toBe(0);
-      expect(c.stdout()).toContain("create  aegis.config.json");
+      expect(c.stdout()).toContain("create    aegis.config.json");
       expect(c.stdout()).toContain("Dry run: no files were written");
       expect(await names(dir)).toEqual(["package.json"]);
     });
@@ -27,14 +27,22 @@ describe("aegis init", () => {
         c,
       );
       expect(code).toBe(0);
-      expect(await names(dir)).toEqual(["AEGIS.aegis", "aegis.config.json", "package.json"]);
+      // the two project files plus the agent instruction files for the chosen agents
+      expect(await names(dir)).toEqual([
+        ".claude",
+        ".github",
+        "AEGIS.aegis",
+        "aegis.config.json",
+        "package.json",
+      ]);
       const cfg = parseConfig(await readFile(path.join(dir, "aegis.config.json"), "utf8"));
       expect(cfg.ok && cfg.value.protectionLevel).toBe("advanced");
       expect(cfg.ok && cfg.value.agents).toEqual(["claude-code", "github-copilot"]);
       const master = parseMasterFile(await readFile(path.join(dir, "AEGIS.aegis"), "utf8"));
       expect(master.ok && master.value.defaultProtectionLevel).toBe("advanced");
       expect(c.stdout()).toContain("Diagnostic:");
-      expect(c.stdout()).toContain("NOT generated yet");
+      expect(c.stdout()).toContain(".claude/rules/aegis.md");
+      expect(c.stdout()).not.toContain("NOT generated yet");
     });
   });
 
@@ -50,8 +58,8 @@ describe("aegis init", () => {
       expect(await readFile(path.join(dir, "AEGIS.aegis"), "utf8")).toBe(
         "# my own file, not even valid\n",
       );
-      expect(c.stdout()).toContain("keep    aegis.config.json");
-      expect(c.stdout()).toContain("keep    AEGIS.aegis");
+      expect(c.stdout()).toContain("keep      aegis.config.json");
+      expect(c.stdout()).toContain("keep      AEGIS.aegis");
     });
   });
 

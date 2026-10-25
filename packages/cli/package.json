@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@aegis/core": "*",
+    "@aegis/integrations": "*",
     "@aegis/rules": "*",
     "commander": "^15.0.0"
   }
