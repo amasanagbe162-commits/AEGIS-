@@ -24,10 +24,43 @@ export interface Runtime {
   prompter: Prompter;
   /** Check runners by id. Real scanners in production; fakes or none in tests. */
   runners?: Readonly<Record<string, CheckRunner>>;
+  /** Downloads a text document over HTTPS (used only by `aegis rules update`). */
+  fetchText?: (url: string) => Promise<string>;
   /** Clock, replaceable in tests. */
   now?: () => Date;
   /** Reads piped standard input (used by hooks). Returns "" when nothing is piped. */
   readStdin?: () => Promise<string>;
+}
+
+const MAX_FETCH_BYTES = 5 * 1024 * 1024;
+
+/** One HTTPS GET with a timeout and a size limit. Sends no cookies, no credentials and no project data. */
+export async function fetchHttpsText(url: string): Promise<string> {
+  const target = new URL(url);
+  if (target.protocol !== "https:") throw new Error("only https:// is allowed");
+  const res = await fetch(target, {
+    redirect: "follow",
+    signal: AbortSignal.timeout(15_000),
+    headers: { accept: "application/json", "user-agent": "aegis-rules-update" },
+  });
+  if (!res.url.startsWith("https://"))
+    throw new Error("the server redirected to a non-HTTPS address");
+  if (!res.ok) throw new Error(`the server answered HTTP ${res.status}`);
+  const reader = res.body?.getReader();
+  if (!reader) return "";
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > MAX_FETCH_BYTES) {
+      await reader.cancel();
+      throw new Error("the download is larger than 5 MB");
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 const MAX_STDIN_BYTES = 256 * 1024;
@@ -105,5 +138,6 @@ export function createRuntime(version: string): Runtime {
     prompter: createTerminalPrompter(),
     runners: createDefaultRunners({ semgrepRulesFile: SEMGREP_RULES_FILE }),
     readStdin: readPipedStdin,
+    fetchText: fetchHttpsText,
   };
 }

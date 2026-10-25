@@ -5,7 +5,7 @@ import {
   type ProtectionLevel,
   type ScanReport,
 } from "@aegis/core";
-import { RULES_DIR } from "@aegis/rules";
+import { rulesInUse } from "../util/rules-source.js";
 import type { Runtime } from "../runtime.js";
 import { resolveRoot } from "../util/resolve-root.js";
 
@@ -21,9 +21,11 @@ async function inspect(rt: Runtime, pathArg: string | undefined, opts: ScanOptio
     rt.err(`aegis: ${resolved.message}\n`);
     return undefined;
   }
+  const use = await rulesInUse(resolved.root);
+  if (use.warning) rt.err(`aegis: note: ${use.warning}\n`);
   return inspectProject({
     root: resolved.root,
-    rulesDir: RULES_DIR,
+    rulesDir: use.dir,
     toolVersion: rt.version,
     ...(opts.level ? { level: opts.level } : {}),
     ...(opts.allowProjectTools ? { allowProjectTools: true } : {}),

@@ -25,9 +25,10 @@ describe("meta", () => {
     expect(b.stderr()).toContain("Allowed choices are standard, advanced, maximum");
   });
 
-  it("does not offer an 'update' command that does not exist yet", async () => {
+  it("rules update is off until the project enables it, and says how", async () => {
     const c = makeRuntime(repoRoot);
     expect(await aegis(["rules", "update"], c)).toBe(2);
+    expect(c.stderr()).toContain("rule updates are off");
   });
 });
 

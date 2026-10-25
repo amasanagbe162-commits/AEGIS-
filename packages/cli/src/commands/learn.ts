@@ -15,7 +15,7 @@ import {
   type LearningStatus,
   type Transition,
 } from "@aegis/core";
-import { RULES_DIR } from "@aegis/rules";
+import { rulesInUse } from "../util/rules-source.js";
 import type { Runtime } from "../runtime.js";
 import { resolveRoot } from "../util/resolve-root.js";
 
@@ -219,7 +219,7 @@ export async function learnVerifyCommand(
   }
   const report = await inspectProject({
     root: ctx.root,
-    rulesDir: RULES_DIR,
+    rulesDir: (await rulesInUse(ctx.root)).dir,
     toolVersion: rt.version,
     ...(rt.runners ? { runners: rt.runners } : {}),
   });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { trustedKeySchema } from "../updates/bundle.js";
 import {
   agentSchema,
   categorySchema,
@@ -42,9 +43,16 @@ export const configSchema = z
       .strict()
       .default({ maxAttempts: 3 }),
     updates: z
-      .object({ enabled: z.boolean().default(false) })
+      .object({
+        /** Off by default. Nothing contacts the network unless this is true. */
+        enabled: z.boolean().default(false),
+        /** Where `aegis rules update` fetches the signed bundle (https only), or a local file. */
+        source: z.string().min(1).max(500).optional(),
+        /** Public keys you trust to sign rule bundles, in addition to any built into AEGIS. */
+        trustedKeys: z.array(trustedKeySchema).max(10).default([]),
+      })
       .strict()
-      .default({ enabled: false }),
+      .default({ enabled: false, trustedKeys: [] }),
   })
   .strict();
 

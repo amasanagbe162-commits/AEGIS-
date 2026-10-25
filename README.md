@@ -22,7 +22,7 @@ This repository currently contains the project foundation, the `.aegis` format (
 | Scanner integrations                                      | Implemented; OSV-Scanner and ESLint output not verified against real vulnerable runs (see [accuracy](docs/scanner-accuracy.md))           |
 | Agent integrations (Claude Code, Copilot, Codex, ChatGPT) | Implemented and tested at the file and CLI level; not tested inside live agent sessions. See [docs/integrations.md](docs/integrations.md) |
 | Learning records (`aegis learn`)                          | Implemented and tested; see [docs/learning.md](docs/learning.md)                                                                          |
-| Optional signed rule updates                              | PLANNED                                                                                                                                   |
+| Optional signed rule updates (`aegis rules update`)       | Implemented and tested; no official signing key exists yet. See [docs/updates.md](docs/updates.md)                                        |
 
 See [docs/roadmap.md](docs/roadmap.md) for the phase plan.
 

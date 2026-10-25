@@ -22,7 +22,8 @@ import {
   type InstructionInput,
   type PlannedFile,
 } from "@aegis/integrations";
-import { RULES_DIR, TEMPLATES_DIR } from "@aegis/rules";
+import { TEMPLATES_DIR } from "@aegis/rules";
+import { rulesInUse } from "../util/rules-source.js";
 import type { Runtime } from "../runtime.js";
 import { exists, readRegularFile } from "../util/fs.js";
 import { resolveRoot } from "../util/resolve-root.js";
@@ -106,7 +107,7 @@ export async function buildInstructionInput(
     };
   }
 
-  const loadedRules = await loadRulesFromDir(RULES_DIR);
+  const loadedRules = await loadRulesFromDir((await rulesInUse(root)).dir);
   if (hasErrors(loadedRules.diagnostics)) {
     return {
       ok: false,

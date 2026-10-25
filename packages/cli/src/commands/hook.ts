@@ -1,5 +1,5 @@
 import { inspectProject, loadProjectConfig } from "@aegis/core";
-import { RULES_DIR } from "@aegis/rules";
+import { rulesInUse } from "../util/rules-source.js";
 import { decideStop, parseStopHookInput, readAttempts, writeAttempts } from "@aegis/integrations";
 import type { Runtime } from "../runtime.js";
 import { resolveRoot } from "../util/resolve-root.js";
@@ -31,7 +31,7 @@ export async function hookClaudeStopCommand(rt: Runtime): Promise<number> {
 
   const report = await inspectProject({
     root,
-    rulesDir: RULES_DIR,
+    rulesDir: (await rulesInUse(root)).dir,
     toolVersion: rt.version,
     ...(rt.runners ? { runners: rt.runners } : {}),
   });

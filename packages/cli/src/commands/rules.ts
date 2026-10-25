@@ -16,6 +16,7 @@ import {
   type Rule,
 } from "@aegis/core";
 import { RULES_DIR } from "@aegis/rules";
+import { rulesInUse } from "../util/rules-source.js";
 import type { Runtime } from "../runtime.js";
 import { exists, isDirectory, readRegularFile } from "../util/fs.js";
 import { resolveRoot } from "../util/resolve-root.js";
@@ -24,7 +25,9 @@ export async function rulesListCommand(
   rt: Runtime,
   opts: { category?: Category; json?: boolean },
 ): Promise<number> {
-  const loaded = await loadRulesFromDir(RULES_DIR);
+  const resolvedRoot = await resolveRoot(rt, undefined);
+  const dir = resolvedRoot.ok ? (await rulesInUse(resolvedRoot.root)).dir : RULES_DIR;
+  const loaded = await loadRulesFromDir(dir);
   if (hasErrors(loaded.diagnostics)) {
     rt.err("aegis: the bundled rules could not be loaded:\n");
     for (const d of loaded.diagnostics) rt.err(`  ${formatDiagnostic(d)}\n`);

@@ -11,7 +11,7 @@ import {
   type Diagnostic,
   type Rule,
 } from "@aegis/core";
-import { RULES_DIR } from "@aegis/rules";
+import { rulesInUse } from "../util/rules-source.js";
 import type { Runtime } from "../runtime.js";
 import { exists, findExecutable, readRegularFile } from "../util/fs.js";
 import { resolveRoot } from "../util/resolve-root.js";
@@ -65,7 +65,8 @@ export async function runDoctor(rt: Runtime, root: string): Promise<DoctorResult
   add("ok", "Project folder", root);
 
   // Bundled rules
-  const loaded = await loadRulesFromDir(RULES_DIR);
+  const inUse = await rulesInUse(root);
+  const loaded = await loadRulesFromDir(inUse.dir);
   let rules: Rule[] = [];
   if (hasErrors(loaded.diagnostics) || loaded.rules.length === 0) {
     add(
@@ -75,7 +76,11 @@ export async function runDoctor(rt: Runtime, root: string): Promise<DoctorResult
     );
   } else {
     rules = loaded.rules.map((r) => r.rule);
-    add("ok", "Bundled rules", `${rules.length} rules loaded and valid`);
+    add(
+      inUse.warning ? "warn" : "ok",
+      "Bundled rules",
+      `${rules.length} rules loaded and valid (${inUse.source} ${inUse.version})${inUse.warning ? `. ${inUse.warning}` : ""}`,
+    );
   }
 
   // Project config

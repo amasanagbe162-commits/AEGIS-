@@ -21,3 +21,14 @@ export const SEMGREP_RULES_FILE = path.resolve(
   "semgrep",
   "aegis.yaml",
 );
+
+/** Version of the rule set that ships inside this package. Bump it when bundled rules change. */
+export const BASELINE_RULES_VERSION = "0.1.0";
+
+/**
+ * Public keys built into AEGIS that may sign rule bundles. EMPTY on purpose: no official signing key
+ * exists yet. The project owner creates one with `aegis rules keygen`, keeps the private key offline,
+ * and adds the public key here in a reviewed commit. Until then, only keys that a person adds to
+ * their own aegis.config.json are trusted.
+ */
+export const TRUSTED_KEYS: readonly { id: string; publicKey: string }[] = [];

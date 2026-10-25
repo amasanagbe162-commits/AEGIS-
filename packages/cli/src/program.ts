@@ -22,6 +22,12 @@ import {
 } from "./commands/agents.js";
 import { hookClaudeStopCommand } from "./commands/hook.js";
 import {
+  rulesBundleCommand,
+  rulesKeygenCommand,
+  rulesStatusCommand,
+  rulesUpdateCommand,
+} from "./commands/updates.js";
+import {
   learnAddCommand,
   learnAmendCommand,
   learnListCommand,
@@ -200,6 +206,68 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
       "validate a rule file, a folder of rules, an .aegis master file, or aegis.config.json (default: bundled rules and this project's files)",
     )
     .action(async (t: string | undefined) => set(await rulesValidateCommand(rt, t)));
+
+  rules
+    .command("status [path]")
+    .description(
+      "show which rules are in use (installed update or shipped baseline) and the update settings",
+    )
+    .action(async (p: string | undefined) => set(await rulesStatusCommand(rt, p)));
+  rules
+    .command("update [path]")
+    .description(
+      "optional: fetch a signed rule bundle, verify it, and install it (off unless updates.enabled is true; sends no project data)",
+    )
+    .option("--source <url-or-file>", "https URL or local file (default: updates.source)")
+    .option("--dry-run", "verify and show what would change without installing")
+    .option("-y, --yes", "install without asking for confirmation")
+    .action(
+      async (p: string | undefined, o: { source?: string; dryRun?: boolean; yes?: boolean }) =>
+        set(
+          await rulesUpdateCommand(rt, p, {
+            ...(o.source ? { source: o.source } : {}),
+            ...(o.dryRun ? { dryRun: true } : {}),
+            ...(o.yes ? { yes: true } : {}),
+          }),
+        ),
+    );
+  rules
+    .command("keygen")
+    .description(
+      "maintainers: create an Ed25519 key for signing rule bundles (the private key is written to a file, never printed)",
+    )
+    .requiredOption("--out-dir <dir>", "folder for the key files")
+    .requiredOption("--key-id <id>", "short id, for example aegis-2026")
+    .action(async (o: { outDir: string; keyId: string }) => set(await rulesKeygenCommand(rt, o)));
+  rules
+    .command("bundle")
+    .description("maintainers: sign a folder of rules into an update bundle")
+    .requiredOption("--key <file>", "private key file made by 'aegis rules keygen'")
+    .requiredOption("--key-id <id>", "id of that key")
+    .requiredOption("--bundle-version <semver>", "version of this rule set, for example 0.2.0")
+    .requiredOption("--out <file>", "bundle file to create (never overwritten)")
+    .option("--min-aegis <semver>", "oldest AEGIS version that can use it", "0.0.0")
+    .option("--rules-dir <dir>", "rules to sign (default: the bundled rules)")
+    .action(
+      async (o: {
+        key: string;
+        keyId: string;
+        bundleVersion: string;
+        out: string;
+        minAegis: string;
+        rulesDir?: string;
+      }) =>
+        set(
+          await rulesBundleCommand(rt, {
+            key: o.key,
+            keyId: o.keyId,
+            bundleVersion: o.bundleVersion,
+            minAegis: o.minAegis,
+            out: o.out,
+            ...(o.rulesDir ? { rulesDir: o.rulesDir } : {}),
+          }),
+        ),
+    );
 
   const agents = program
     .command("agents")
