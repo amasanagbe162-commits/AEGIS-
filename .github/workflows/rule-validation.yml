@@ -1,0 +1,29 @@
+name: Rule validation
+
+on:
+  pull_request:
+    paths:
+      - "packages/rules/**"
+      - "packages/core/src/schemas/**"
+      - "formats/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Syntax and schema validation only. A rule can be valid and still wrong:
+      # a maintainer must review examples, severity and references (docs/rule-authoring.md).
+      - run: node packages/cli/bin/aegis.js rules validate packages/rules/data
+      - run: node packages/cli/bin/aegis.js rules validate packages/rules/templates/AEGIS.aegis
+      - run: npm run schemas && git diff --exit-code formats
+      - run: npx vitest run packages/rules packages/core/tests/loader.test.ts packages/core/tests/parser.test.ts tests/security

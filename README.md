@@ -1,34 +1,43 @@
 # AEGIS — AI Engineering Guard & Inspection System
 
-![status: early development](https://img.shields.io/badge/status-early%20development-orange)
+![status: pre-release](https://img.shields.io/badge/status-pre--release-orange)
 ![license: MIT](https://img.shields.io/badge/license-MIT-blue)
 
 > **Inspect before coding. Protect during coding. Verify after coding.**
 
 AEGIS is an open-source protection framework for AI coding agents such as Claude Code, GitHub Copilot, OpenAI Codex and ChatGPT. It is **not** an AI model and does not replace your agent. It aims to give your agent structured rules, safe/unsafe code examples, and deterministic checks, so that mistakes are caught with evidence instead of promises.
 
-## Status: early development
+## Status: pre-release (not published)
 
-This repository currently contains the project foundation, the `.aegis` format (specification, schemas, safe parser and rule loader), six starter rules, and the core engine (project detection, rule selection, reports). A working CLI (`init`, `scan`, `check`, `rules`, `agents`, `hook`, `doctor`) runs real scanners (Gitleaks, Semgrep, npm audit, OSV-Scanner, and your project's own tsc and ESLint when allowed). A scan is only `clean` when every planned check actually ran.
+The foundation, the `.aegis` format, the core engine, the CLI, agent integrations, learning records and signed rule updates are built and tested. It is **not published** and not ready for a 1.0 release: see [docs/acceptance.md](docs/acceptance.md) for exactly what is met and what is open. The CLI (`init`, `scan`, `check`, `rules`, `agents`, `learn`, `hook`, `doctor`) runs real scanners (Gitleaks, Semgrep, npm audit, OSV-Scanner, and your project's own tsc and ESLint when allowed). A scan is only `clean` when every planned check actually ran.
 
-| Area                                                      | Status                                                                                                                                    |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Monorepo, lint, typecheck, tests                          | Implemented                                                                                                                               |
-| CI workflow                                               | Implemented                                                                                                                               |
-| `.aegis` format and parser                                | Implemented and tested                                                                                                                    |
-| Protection rule library                                   | Started: 6 starter rules, pending human review                                                                                            |
-| Core engine and project detection                         | Implemented and tested                                                                                                                    |
-| CLI (`aegis init`, `scan`, `check`, `rules`, `doctor`)    | Implemented and tested                                                                                                                    |
-| Scanner integrations                                      | Implemented; OSV-Scanner and ESLint output not verified against real vulnerable runs (see [accuracy](docs/scanner-accuracy.md))           |
-| Agent integrations (Claude Code, Copilot, Codex, ChatGPT) | Implemented and tested at the file and CLI level; not tested inside live agent sessions. See [docs/integrations.md](docs/integrations.md) |
-| Learning records (`aegis learn`)                          | Implemented and tested; see [docs/learning.md](docs/learning.md)                                                                          |
-| Optional signed rule updates (`aegis rules update`)       | Implemented and tested; no official signing key exists yet. See [docs/updates.md](docs/updates.md)                                        |
+| Area                                                      | Status                                                                                                                                                                 |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo, lint, typecheck, tests                          | Implemented                                                                                                                                                            |
+| CI workflow                                               | Implemented                                                                                                                                                            |
+| `.aegis` format and parser                                | Implemented and tested                                                                                                                                                 |
+| Protection rule library                                   | Started: 6 starter rules, pending human review                                                                                                                         |
+| Core engine and project detection                         | Implemented and tested                                                                                                                                                 |
+| CLI (`aegis init`, `scan`, `check`, `rules`, `doctor`)    | Implemented and tested                                                                                                                                                 |
+| Scanner integrations                                      | Implemented; verified against real Gitleaks, Semgrep, ESLint, tsc; OSV-Scanner and npm audit vulnerable output not verified (see [accuracy](docs/scanner-accuracy.md)) |
+| Agent integrations (Claude Code, Copilot, Codex, ChatGPT) | Implemented and tested at the file and CLI level; not tested inside live agent sessions. See [docs/integrations.md](docs/integrations.md)                              |
+| Learning records (`aegis learn`)                          | Implemented and tested; see [docs/learning.md](docs/learning.md)                                                                                                       |
+| Optional signed rule updates (`aegis rules update`)       | Implemented and tested; no official signing key exists yet. See [docs/updates.md](docs/updates.md)                                                                     |
 
-See [docs/roadmap.md](docs/roadmap.md) for the phase plan.
+See [docs/roadmap.md](docs/roadmap.md) for the phase plan and [docs/acceptance.md](docs/acceptance.md) for the release checklist.
 
 ## What AEGIS cannot guarantee
 
 AEGIS reduces risk. It cannot guarantee bug-free or vulnerability-free software. Instruction files are advisory and an agent may ignore them. Passing checks does not prove code is secure.
+
+## The idea in four commands
+
+```bash
+aegis init --agent claude-code codex   # config, master file and agent instruction files (previewed, never overwritten)
+aegis scan                             # real scanners; clean only if every planned check ran
+aegis agents sync --hooks              # optional Claude Code Stop hook: sends the agent back to fix blocking findings
+aegis learn add ...                    # record a mistake; verified by a real check, approved by a person
+```
 
 ## Try it
 

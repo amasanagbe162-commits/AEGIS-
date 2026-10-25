@@ -90,3 +90,17 @@ Then check them: `aegis rules validate AEGIS.aegis` and `aegis rules validate ae
 | `aegis doctor [path]`           | Diagnose Node.js, config, master file, bundled rules and optional tools. Changes nothing.     |
 
 Not implemented yet: `aegis rules update` (planned for a later version).
+
+## Optional scanners and the versions AEGIS was tested with
+
+AEGIS reports a check as **skipped** (never clean) when its tool is missing. To enable them:
+
+| Tool               | Used for                   | Tested with                        | Notes                                                                                |
+| ------------------ | -------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------ |
+| Gitleaks           | secret detection           | 8.28.0                             | Needs the `dir` command: 8.18.4 does not have it and AEGIS says so.                  |
+| Semgrep            | static analysis            | 1.182.1                            | AEGIS passes its own rules file.                                                     |
+| OSV-Scanner        | dependency vulnerabilities | 2.2.2                              | Needs network access to `api.osv.dev`; without it the check is a tool error.         |
+| npm                | `npm audit`                | bundled with Node 22               | Needs network access.                                                                |
+| ESLint, TypeScript | lint, type check           | ESLint 9, project's own TypeScript | Run only with `scan.allowProjectTools: true`, from the project's own `node_modules`. |
+
+Other versions may work but were not tested.

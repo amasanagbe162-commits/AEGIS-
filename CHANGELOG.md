@@ -6,6 +6,10 @@ All notable changes are documented here. Format based on [Keep a Changelog](http
 
 ### Added
 
+- Hardening: all writes under `.aegis/` (learning records, hook state, rule installs) refuse symbolic links; the Claude Stop hook fails open when it cannot record its attempt count, so the attempt limit can never be bypassed. Parser-abuse and symlink regression tests in `tests/security`.
+- Real-tool verification (Gitleaks 8.28.0, Semgrep 1.182.1, OSV-Scanner 2.2.2, ESLint 9); a real ESLint test; a clear error when Gitleaks is too old to have the `dir` command.
+- CI: a `real-tools` job with checksum-pinned scanners, and a rule-validation workflow.
+- Docs: acceptance checklist, versioning policy, release checklist.
 - Signed, optional rule updates (`aegis rules update|status|keygen|bundle`): Ed25519-signed bundles verified against keys you trust, version and compatibility checks, no downgrades, full rule validation before install, atomic swap with fallback to the shipped baseline. Off by default; one HTTPS GET, no project data sent. No official signing key exists yet.
 - Learning records (`aegis learn add|list|show|amend|verify|review|supersede`): observed -> proposed -> verified -> approved lifecycle. Verification is recorded by AEGIS from a real clean, complete check; approval needs a person at a terminal. Approved lessons are included in generated agent instructions. Secrets are redacted and pasted code is refused.
 - Agent integrations (`@aegis/integrations`, `aegis agents list|sync|verify|print`): Claude Code (`.claude/rules/aegis.md`), GitHub Copilot (path-specific instructions), OpenAI Codex (`AGENTS.md` block) and ChatGPT (paste-in text). Generated from the project's master file and selected rules, within enforced size budgets.

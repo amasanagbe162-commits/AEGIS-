@@ -26,3 +26,35 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+
+  # Runs the tests that execute the REAL scanners. Binaries are pinned to a version and verified by
+  # SHA-256, so a changed download fails the job instead of running.
+  real-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned scanners
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/tools"
+          curl -fsSL -o gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          echo "a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb  gitleaks.tgz" | sha256sum -c -
+          tar xzf gitleaks.tgz -C "$HOME/tools" gitleaks
+          curl -fsSL -o "$HOME/tools/osv-scanner" https://github.com/google/osv-scanner/releases/download/v2.2.2/osv-scanner_linux_amd64
+          echo "c799274b682e0437c802d4714a136ad09b39c65547c460049ba5358d28afa576  $HOME/tools/osv-scanner" | sha256sum -c -
+          chmod +x "$HOME/tools/osv-scanner"
+          python -m venv "$HOME/sg" && "$HOME/sg/bin/pip" install --quiet semgrep==1.182.1
+          ln -s "$HOME/sg/bin/semgrep" "$HOME/tools/semgrep"
+          echo "$HOME/tools" >> "$GITHUB_PATH"
+      - run: npm ci
+      - run: npm run build
+      - run: npx vitest run tests/integration/real-tools.test.ts tests/integration/agents-binary.test.ts
+      - name: Scan this repository for secrets
+        run: gitleaks dir . --redact --no-banner --no-color

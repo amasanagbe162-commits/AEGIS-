@@ -17,12 +17,16 @@ The fixture set is **small** (a handful of samples), so these numbers show that 
 | OSV-Scanner   | same lockfile                                                                               | needs network; without it the check is a tool error, never a pass |
 | tsc           | a project with one type error                                                               | reported as a confirmed failure                                   |
 
-The tests that run the real tools are in `tests/integration/real-tools.test.ts`. They are skipped when a tool is not installed, so a machine without the tools verifies nothing about them.
+The tests that run the real tools are in `tests/integration/real-tools.test.ts`. They are skipped when a tool is not installed, so a machine without the tools verifies nothing about them. CI has a `real-tools` job that installs pinned versions (checksum-verified) so they run on every change.
+
+Last verified against real tools (Linux x86-64, 2026-10-25): **Gitleaks 8.28.0, Semgrep 1.182.1, OSV-Scanner 2.2.2, ESLint 9, TypeScript (project's own), npm audit**. Results: Gitleaks 3 of 3 behaviors as in the table; Semgrep 6 of 6 vulnerable samples reported and 0 of 6 corrected samples reported; ESLint reported a real `eqeqeq` violation at the right line, passed clean code, and was skipped when project tools were not allowed.
+
+**Gitleaks needs the `dir` command.** Gitleaks 8.18.4 does not have it, so AEGIS reports a tool error telling you to upgrade (it never reports a pass). 8.28.0 works; versions in between were not tested.
 
 ## Not verified
 
-- **OSV-Scanner's vulnerable-result format** was not captured from a real vulnerable run, because the development environment could not reach `api.osv.dev`. The parser follows the documented format and is tested with a synthetic sample. Check it against a real run before relying on it.
-- **ESLint** was tested with fake tool output and its documented JSON format, not with a real ESLint run.
+- **OSV-Scanner's vulnerable-result format** was not captured from a real vulnerable run, because the development environment could not reach `api.osv.dev`. A real OSV-Scanner 2.2.2 run without network access was verified to produce a tool error (never a pass). The parser for the vulnerable result follows the documented format and is tested with a synthetic sample only. Check it against a real run before relying on it.
+- **npm audit** was verified without network (a clear error); its advisory format was not captured from a real vulnerable run for the same reason.
 - Windows and macOS were not tested.
 
 ## Known gaps in the Semgrep rules
