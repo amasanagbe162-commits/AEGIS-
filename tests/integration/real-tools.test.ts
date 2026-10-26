@@ -96,11 +96,13 @@ describe.skipIf(!hasSemgrep)("real semgrep with the AEGIS rules", { timeout: 120
     const hits = r.findings.map((f) => `${f.location?.file}:${f.location?.line} ${f.title}`).sort();
     expect(hits).toEqual([
       "react.jsx:3 Possible issue (aegis.js.dangerously-set-inner-html)",
+      "sql.js:13 Possible issue (aegis.js.sql-tainted-variable)",
       "sql.js:3 Possible issue (aegis.js.sql-string-concat)",
       "sql.js:6 Possible issue (aegis.js.sql-string-concat)",
       "sql.js:9 Possible issue (aegis.js.sql-string-concat)",
       "xss.js:3 Possible issue (aegis.js.inner-html-assignment)",
       "xss.js:4 Possible issue (aegis.js.document-write)",
+      "xss.js:5 Possible issue (aegis.js.insert-adjacent-html)",
     ]);
     expect(r.findings.find((f) => f.title.includes("sql-string-concat"))).toMatchObject({
       ruleId: "AEGIS-SEC-0001",
@@ -125,14 +127,26 @@ describe.skipIf(!hasSemgrep)("real semgrep with the AEGIS rules", { timeout: 120
 });
 
 describe.skipIf(!hasNpm)("real npm audit", { timeout: 120_000 }, () => {
-  it("never reports a vulnerable lockfile as passed (findings with network, a clear error without)", async () => {
+  it("reports the real advisories for a vulnerable lockfile (and a clear error when the registry is unreachable)", async () => {
     const dir = await temp();
     await cp(path.join(root, "tests/fixtures/vulnerable-deps"), dir, { recursive: true });
+    const reachable = await fetch("https://registry.npmjs.org/-/ping", {
+      signal: AbortSignal.timeout(8000),
+    }).then(
+      (r) => r.ok,
+      () => false,
+    );
     const r = await createNpmAuditRunner(deps)(await context(dir));
+    // Never a pass, whatever the network does.
     expect(["findings", "tool-error"]).toContain(r.outcome);
-    if (r.outcome === "findings")
-      expect(r.findings.some((f) => f.title === "Vulnerable dependency: lodash")).toBe(true);
-    else expect(r.reason).toMatch(/npm audit failed|no readable report/);
+    if (reachable) {
+      expect(r.outcome).toBe("findings");
+      const lodash = r.findings.filter((f) => f.title === "Vulnerable dependency: lodash");
+      expect(lodash.length).toBeGreaterThan(0);
+      expect(lodash.some((f) => f.severity === "high" || f.severity === "critical")).toBe(true);
+    } else {
+      expect(r.reason).toMatch(/npm audit failed|no readable report/);
+    }
   });
 });
 

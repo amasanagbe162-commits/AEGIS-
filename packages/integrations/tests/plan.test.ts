@@ -127,7 +127,7 @@ describe("planning and writing", () => {
     });
   });
 
-  it("does not write through symbolic links", async () => {
+  it.skipIf(process.platform === "win32")("does not write through symbolic links", async () => {
     await withTempDir(async (dir) => {
       await withTempDir(async (outside) => {
         const [spec] = await specsFor("claude-code");

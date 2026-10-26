@@ -32,17 +32,37 @@ prevention:
   - Avoid raw-HTML APIs unless required, and sanitize before using them.
   - Set a Content-Security-Policy where the application allows it.
 verification:
-  - Search the change for innerHTML, outerHTML, document.write and dangerouslySetInnerHTML.
+  - Search the change for innerHTML, outerHTML, insertAdjacentHTML, document.write and dangerouslySetInnerHTML.
   - Test with input containing angle brackets and quotes and confirm it renders as text.
 references:
-  - https://owasp.org/www-community/attacks/xss/
   - https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html
 scanner:
   tool: semgrep
   ruleRef: aegis.js.inner-html-assignment
 tests:
-  - tests/fixtures/vulnerable/xss.js and react.jsx are reported by the Semgrep rules.
-  - tests/fixtures/corrected/xss.js and react.jsx are not reported.
-  - Known gap - the rule cannot tell whether a value was already sanitized, so sanitized input assigned to innerHTML is also reported.
-version: 1.0.0
-status: proposed
+  - tests/fixtures/vulnerable/xss.js (innerHTML, document.write, insertAdjacentHTML) and react.jsx (dangerouslySetInnerHTML) are reported by the Semgrep rules.
+  - tests/fixtures/corrected/xss.js (textContent, insertAdjacentText, constant markup) and react.jsx are not reported.
+  - tests/rules/rule-examples.test.ts runs this rule's bad and good examples against a fake element. The bad one stores the text in innerHTML, and the good one stores it in textContent.
+  - Known gap - the rule cannot tell whether a value was already sanitized, so sanitized input assigned to innerHTML is also reported. Other sinks (eval, and javascript URLs in href attributes) are not covered.
+version: 1.1.0
+status: approved
+review:
+  reviewerKind: ai-assisted
+  reviewer: Claude (AI model), at the request of the project owner
+  reviewedAt: 2026-10-26
+  gates:
+    - metadata-valid
+    - description-accurate
+    - severity-justified
+    - examples-technically-correct
+    - corrected-example-solves-the-problem
+    - references-legitimate
+    - tests-pass
+    - scanner-configuration-safe
+    - behavior-documented
+    - no-secrets
+    - dangerous-examples-not-executed-by-tooling
+    - compatibility-clear
+  notes: >-
+    Examples executed against a fake DOM element by tests/rules/rule-examples.test.ts. Semgrep rules measured on fixtures with real Semgrep 1.182.1. OWASP XSS and DOM-based XSS cheat-sheet pages confirmed against search results on 2026-10-26. High severity is justified by script execution as the victim. Sinks beyond the listed ones are not covered and the limitation is documented. This is an AI-assisted review. A human maintainer has not yet confirmed it.

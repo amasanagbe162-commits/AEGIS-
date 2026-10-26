@@ -53,8 +53,15 @@ describe("bundled rule library", async () => {
     }
   });
 
-  it("is honest about review status: no rule is approved by the author", () => {
-    for (const { rule } of rules) expect(rule.status).toBe("proposed");
+  it("is honest about review status: every approved rule names its reviewer and who that was", () => {
+    for (const { rule } of rules) {
+      if (rule.status !== "approved") continue;
+      expect(rule.review?.reviewer, rule.id).toBeTruthy();
+      expect(["human", "ai-assisted"], rule.id).toContain(rule.review?.reviewerKind);
+      if (rule.review?.reviewerKind === "ai-assisted") {
+        expect(rule.review.notes, rule.id).toContain("A human maintainer has not yet confirmed it");
+      }
+    }
   });
 
   it("contains no realistic secret formats", () => {

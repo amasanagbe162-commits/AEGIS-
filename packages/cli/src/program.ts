@@ -23,6 +23,7 @@ import {
 import { hookClaudeStopCommand } from "./commands/hook.js";
 import {
   rulesBundleCommand,
+  rulesCheckBundleCommand,
   rulesKeygenCommand,
   rulesStatusCommand,
   rulesUpdateCommand,
@@ -238,7 +239,25 @@ export async function run(argv: readonly string[], rt: Runtime): Promise<number>
     )
     .requiredOption("--out-dir <dir>", "folder for the key files")
     .requiredOption("--key-id <id>", "short id, for example aegis-2026")
-    .action(async (o: { outDir: string; keyId: string }) => set(await rulesKeygenCommand(rt, o)));
+    .option("--allow-in-repo", "write the key even inside a Git repository (not recommended)")
+    .action(async (o: { outDir: string; keyId: string; allowInRepo?: boolean }) =>
+      set(
+        await rulesKeygenCommand(rt, {
+          outDir: o.outDir,
+          keyId: o.keyId,
+          ...(o.allowInRepo ? { allowInRepo: true } : {}),
+        }),
+      ),
+    );
+  rules
+    .command("check-bundle <file>")
+    .description(
+      "check that a bundle is signed by a trusted key and that its rules validate (changes nothing; used by release jobs)",
+    )
+    .option("--trust <id=key...>", "also trust this public key for the check")
+    .action(async (file: string, o: { trust?: string[] }) =>
+      set(await rulesCheckBundleCommand(rt, file, { ...(o.trust ? { trust: o.trust } : {}) })),
+    );
   rules
     .command("bundle")
     .description("maintainers: sign a folder of rules into an update bundle")

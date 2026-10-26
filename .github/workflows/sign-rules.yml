@@ -1,0 +1,65 @@
+name: Sign rule bundle
+
+# Manual only. Builds and verifies a signed rule bundle and attaches it to THIS workflow run as an
+# artifact. It never publishes, pushes, tags or uploads anywhere else: a maintainer downloads the
+# artifact and publishes it deliberately.
+#
+# Setup (once, by the project owner; see docs/updates.md):
+#   1. Create the key on a trusted machine OUTSIDE any repository:  aegis rules keygen
+#   2. Put the public key into TRUSTED_KEYS (packages/rules/src/index.ts) in a reviewed pull request.
+#   3. Create a GitHub environment named "release-signing" with required reviewers, and store the
+#      private key as the environment secret AEGIS_RULES_SIGNING_KEY. Store the key id as the
+#      environment variable AEGIS_RULES_KEY_ID.
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_version:
+        description: "Version of this rule set, for example 0.3.0 (must be higher than BASELINE_RULES_VERSION)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    environment: release-signing
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Validate the rules before signing anything
+        run: node packages/cli/bin/aegis.js rules validate packages/rules/data
+      - name: Sign the bundle
+        env:
+          SIGNING_KEY: ${{ secrets.AEGIS_RULES_SIGNING_KEY }}
+          KEY_ID: ${{ vars.AEGIS_RULES_KEY_ID }}
+          BUNDLE_VERSION: ${{ inputs.bundle_version }}
+        run: |
+          set -euo pipefail
+          test -n "$SIGNING_KEY" || { echo "AEGIS_RULES_SIGNING_KEY is not set"; exit 1; }
+          test -n "$KEY_ID" || { echo "AEGIS_RULES_KEY_ID is not set"; exit 1; }
+          umask 077
+          keyfile="$(mktemp)"
+          trap 'rm -f "$keyfile"' EXIT
+          printf '%s\n' "$SIGNING_KEY" > "$keyfile"
+          node packages/cli/bin/aegis.js rules bundle \
+            --key "$keyfile" --key-id "$KEY_ID" \
+            --bundle-version "$BUNDLE_VERSION" --out "aegis-rules-${BUNDLE_VERSION}.json"
+      - name: Verify the bundle against the keys built into AEGIS
+        env:
+          BUNDLE_VERSION: ${{ inputs.bundle_version }}
+        run: node packages/cli/bin/aegis.js rules check-bundle "aegis-rules-${BUNDLE_VERSION}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aegis-rules-${{ inputs.bundle_version }}
+          path: aegis-rules-${{ inputs.bundle_version }}.json
+          if-no-files-found: error
+          retention-days: 30

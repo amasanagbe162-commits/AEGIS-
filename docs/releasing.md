@@ -4,7 +4,7 @@ AEGIS is **not published yet**. Do not release until every item below is true. T
 
 ## Before the first release
 
-- [ ] **Choose and reserve the npm name.** `aegis-guard` and `aegis` already exist on npm and belong to unrelated projects (checked 2026-10-25), so `npx aegis-guard init` would run someone else's code. `aegis-ai-guard` and `aegis-engineering` were free on that date. Names can be taken at any time: check again, then publish promptly. Packages are currently `private: true` so they cannot be published by accident.
+- [ ] **Reserve the npm name `aegis-engineering`.** It was chosen as the published name of the CLI package (`packages/cli`, bins `aegis` and `aegis-engineering`). `aegis-guard` and `aegis` already exist on npm and belong to unrelated projects, so `npx aegis-guard init` would run someone else's code. `aegis-engineering` was free when last checked (2026-10-26) but names can be taken at any time: check again immediately before publishing. All packages are `private: true` so they cannot be published by accident; removing `private` is a deliberate release step.
 - [ ] **Review the starter rules.** All six are `status: proposed`. A maintainer must check each rule's description, severity, examples, references and limitations against `docs/rule-authoring.md`, then set `status: approved` in a reviewed commit.
 - [ ] **Create the signing key** (`aegis rules keygen`), keep the private key offline, and add the public key to `TRUSTED_KEYS` (see [updates.md](updates.md)), or decide not to ship official updates yet.
 - [ ] Decide the license holder line in `LICENSE` (MIT is in place).

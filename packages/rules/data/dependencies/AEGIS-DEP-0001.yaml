@@ -37,9 +37,30 @@ verification:
   - Run npm audit and the project's tests after the change.
 references:
   - https://docs.npmjs.com/cli/v10/commands/npm-audit
+  - https://cheatsheetseries.owasp.org/cheatsheets/Vulnerable_Dependency_Management_Cheat_Sheet.html
 scanner:
   tool: npm-audit
 tests:
-  - The dependency audit check reports known vulnerable versions found in package-lock.json. It does not detect typosquatted names or unplanned installs. Those are agent behavior covered by the master file instructions.
-version: 1.0.0
-status: proposed
+  - tests/rules/rule-examples.test.ts checks the structure of both examples. The bad one installs an unpinned name without inspecting it. The good one inspects the package with npm view, then installs an exact version, then reviews the diff.
+  - The dependency audit check reports known vulnerable versions found in package-lock.json (tests/integration/real-tools.test.ts runs real npm audit against a vulnerable lockfile). It does not detect typosquatted names or unplanned installs. Those are agent behavior covered by the master file instructions.
+version: 1.1.0
+status: approved
+review:
+  reviewerKind: ai-assisted
+  reviewer: Claude (AI model), at the request of the project owner
+  reviewedAt: 2026-10-26
+  gates:
+    - metadata-valid
+    - description-accurate
+    - severity-justified
+    - examples-technically-correct
+    - corrected-example-solves-the-problem
+    - references-legitimate
+    - tests-pass
+    - scanner-configuration-safe
+    - behavior-documented
+    - no-secrets
+    - dangerous-examples-not-executed-by-tooling
+    - compatibility-clear
+  notes: >-
+    The rule is guidance for agent behavior, so tests check the structure of its examples and the audit check is verified against real npm audit. The Vulnerable Dependency Management cheat sheet is listed in the OWASP Top Ten cheat-sheet index on 2026-10-26. The npm audit documentation URL is the standard page for the npm version Node 22 ships, and it was not opened in this session. Medium severity and confidence reflect that the rule reduces risk but cannot prove a package safe. This is an AI-assisted review. A human maintainer has not yet confirmed it.

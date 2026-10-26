@@ -50,7 +50,7 @@ describe("rule parsing", () => {
 
   it("rejects non-https references", () => {
     const text = validRuleText.replace(
-      "https://owasp.org/www-community/attacks/SQL_Injection",
+      "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
       "http://example.com/x",
     );
     expect(errorsOf(text).some((d) => d.path.startsWith("references[0]"))).toBe(true);

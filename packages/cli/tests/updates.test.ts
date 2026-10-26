@@ -80,7 +80,7 @@ describe("signing tools", () => {
     await withTempDir(async (dir) => {
       const s = await setup(dir);
       const priv = path.join(s.publisher, "test-key.private.pem");
-      expect((await stat(priv)).mode & 0o777).toBe(0o600);
+      if (process.platform !== "win32") expect((await stat(priv)).mode & 0o777).toBe(0o600);
       const pem = await readFile(priv, "utf8");
       expect(pem).toContain("PRIVATE KEY");
       const again = makeRuntime(s.publisher);
@@ -112,15 +112,15 @@ describe("signing tools", () => {
   it("bundle refuses invalid rules and never overwrites its output", async () => {
     await withTempDir(async (dir) => {
       const s = await setup(dir);
-      const ok = await makeBundle(s, "0.2.0");
+      const ok = await makeBundle(s, "1.0.0");
       expect(ok.code).toBe(0);
-      const again = await makeBundle(s, "0.2.0");
+      const again = await makeBundle(s, "1.0.0");
       expect(again.code).toBe(2);
       expect(again.c.stderr()).toContain("never overwritten");
       const broken = path.join(s.publisher, "broken");
       await mkdir(path.join(broken, "security"), { recursive: true });
       await writeFile(path.join(broken, "security/AEGIS-SEC-0001.yaml"), "id: nope\n");
-      const bad = await makeBundle(s, "0.3.0", broken);
+      const bad = await makeBundle(s, "1.1.0", broken);
       expect(bad.code).toBe(2);
       expect(bad.c.stderr()).toContain("do not validate");
     });
@@ -156,7 +156,7 @@ describe("aegis rules update", () => {
     await withTempDir(async (dir) => {
       const s = await setup(dir);
       await config(s);
-      const b = await makeBundle(s, "0.2.0", await changedRules(s.publisher));
+      const b = await makeBundle(s, "1.0.0", await changedRules(s.publisher));
       expect(b.code).toBe(0);
 
       const dry = makeRuntime(s.dir);
@@ -171,14 +171,14 @@ describe("aegis rules update", () => {
 
       const go = makeRuntime(s.dir);
       expect(await aegis(["rules", "update", "--source", b.file, "--yes"], go)).toBe(0);
-      expect(go.stdout()).toContain("Installed rules 0.2.0");
+      expect(go.stdout()).toContain("Installed rules 1.0.0");
 
       const list = makeRuntime(s.dir);
       await aegis(["rules", "list"], list);
       expect(list.stdout()).toContain("Prevent SQL injection (updated)");
       const status = makeRuntime(s.dir);
       await aegis(["rules", "status"], status);
-      expect(status.stdout()).toContain("installed 0.2.0 (signed by key 'test-key')");
+      expect(status.stdout()).toContain("installed 1.0.0 (signed by key 'test-key')");
       expect((await readdir(path.join(s.dir, ".aegis"))).sort()).toEqual(["rules"]);
       // project files other than .aegis/rules are untouched
       expect((await readdir(s.dir)).sort()).toEqual([
@@ -197,7 +197,7 @@ describe("aegis rules update", () => {
     await withTempDir(async (dir) => {
       const s = await setup(dir);
       await config(s);
-      const b = await makeBundle(s, "0.2.0");
+      const b = await makeBundle(s, "1.0.0");
       const c = makeRuntime(s.dir, { interactive: true, script: { confirms: [false] } });
       expect(await aegis(["rules", "update", "--source", b.file], c)).toBe(0);
       expect(c.asked).toEqual(["Install these rules?"]);
@@ -209,7 +209,7 @@ describe("aegis rules update", () => {
     await withTempDir(async (dir) => {
       const s = await setup(dir);
       await config(s);
-      const good = await makeBundle(s, "0.2.0", await changedRules(s.publisher));
+      const good = await makeBundle(s, "1.0.0", await changedRules(s.publisher));
       expect(await update(s, good.file, ["--yes"])).toBe(0);
       const before = await read(s.dir, ".aegis/rules/installed.json");
 
@@ -250,7 +250,7 @@ describe("aegis rules update", () => {
       await cp(RULES_DIR, bad, { recursive: true });
       const f = path.join(bad, "security/AEGIS-SEC-0001.yaml");
       await writeFile(f, (await readFile(f, "utf8")).replace(/^id: .*$/m, "id: AEGIS-SEC-0099"));
-      const made = await makeBundle(s, "0.2.0", bad);
+      const made = await makeBundle(s, "1.0.0", bad);
       expect(made.code).toBe(2);
       expect(await exists(made.file)).toBe(false);
     });
@@ -259,7 +259,7 @@ describe("aegis rules update", () => {
   it("downloads over HTTPS with exactly one request that carries nothing but the URL", async () => {
     await withTempDir(async (dir) => {
       const s = await setup(dir);
-      const b = await makeBundle(s, "0.2.0");
+      const b = await makeBundle(s, "1.0.0");
       const bundleText = await readFile(b.file, "utf8");
       await config(s, { source: "https://updates.example.test/rules.json" });
       const calls: string[] = [];
@@ -325,7 +325,7 @@ describe("aegis rules update", () => {
     await withTempDir(async (dir) => {
       const s = await setup(dir);
       await config(s);
-      const b = await makeBundle(s, "0.2.0", await changedRules(s.publisher));
+      const b = await makeBundle(s, "1.0.0", await changedRules(s.publisher));
       await update(s, b.file, ["--yes"]);
       await writeFile(
         path.join(s.dir, ".aegis/rules/security/AEGIS-SEC-0001.yaml"),

@@ -8,4 +8,8 @@ async function findByName(pool, req) {
 async function remove(db, req) {
   return db.execute("DELETE FROM notes WHERE id = " + req.params.id);
 }
-module.exports = { findByEmail, findByName, remove };
+async function search(db, req) {
+  const sql = "SELECT id FROM items WHERE name LIKE '%" + req.query.q + "%'";
+  return db.query(sql);
+}
+module.exports = { findByEmail, findByName, remove, search };

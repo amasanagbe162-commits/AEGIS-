@@ -1,4 +1,6 @@
 import { createPublicKey } from "node:crypto";
+import { mkdtemp, rm as rmDir } from "node:fs/promises";
+import os from "node:os";
 import { lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
@@ -8,6 +10,7 @@ import {
   formatDiagnostic,
   generateSigningKey,
   keyIdSchema,
+  trustedKeySchema,
   loadProjectConfig,
   loadRulesFromDir,
   signBundle,
@@ -197,7 +200,7 @@ export async function rulesUpdateCommand(
 /** For maintainers: create a signing key. The private key is written to a file and never printed. */
 export async function rulesKeygenCommand(
   rt: Runtime,
-  o: { outDir: string; keyId: string },
+  o: { outDir: string; keyId: string; allowInRepo?: boolean },
 ): Promise<number> {
   const id = keyIdSchema.safeParse(o.keyId);
   if (!id.success) {
@@ -205,6 +208,13 @@ export async function rulesKeygenCommand(
     return 2;
   }
   const dir = path.resolve(rt.cwd, o.outDir);
+  const repo = await findGitRepository(dir);
+  if (repo && !o.allowInRepo) {
+    rt.err(
+      `aegis: ${dir} is inside the Git repository ${repo}. A private signing key must never sit in a repository, because one careless 'git add' would publish it. Choose a folder outside it (for example ~/aegis-keys).\n`,
+    );
+    return 2;
+  }
   const { privatePem, publicKey } = generateSigningKey();
   try {
     await mkdir(dir, { recursive: true });
@@ -291,5 +301,86 @@ export async function rulesBundleCommand(rt: Runtime, o: BundleOptions): Promise
       `aegis: could not create the bundle: ${(err as NodeJS.ErrnoException).code === "EEXIST" ? "the output file already exists and is never overwritten" : err instanceof Error ? err.message : "unknown error"}\n`,
     );
     return 2;
+  }
+}
+
+/** The folder containing `.git` at or above `dir`, if any. A missing folder is checked via its nearest parent. */
+async function findGitRepository(dir: string): Promise<string | undefined> {
+  let current = dir;
+  for (;;) {
+    try {
+      await lstat(path.join(current, ".git"));
+      return current;
+    } catch {
+      // not here, keep climbing
+    }
+    const parent = path.dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+}
+
+/**
+ * For release jobs and maintainers: does this bundle verify against trusted keys, and do all of its
+ * rules pass the normal validation? Trusts only the keys built into AEGIS plus any `--trust id=key`.
+ * It changes nothing.
+ */
+export async function rulesCheckBundleCommand(
+  rt: Runtime,
+  file: string,
+  opts: { trust?: string[] },
+): Promise<number> {
+  const trusted: TrustedKey[] = [...TRUSTED_KEYS];
+  for (const t of opts.trust ?? []) {
+    const eq = t.indexOf("=");
+    const id = eq > 0 ? t.slice(0, eq) : "";
+    const parsed = trustedKeySchema.safeParse({ id, publicKey: t.slice(eq + 1) });
+    if (!parsed.success) {
+      rt.err("aegis: --trust must look like key-id=<base64 public key>\n");
+      return 2;
+    }
+    trusted.push(parsed.data);
+  }
+  if (trusted.length === 0) {
+    rt.err(
+      "aegis: no trusted signing key is built into this AEGIS and none was given with --trust, so nothing can be verified.\n",
+    );
+    return 2;
+  }
+  let text: string;
+  try {
+    text = await readLocalBundle(path.resolve(rt.cwd, file));
+  } catch (err) {
+    rt.err(
+      `aegis: could not read the bundle: ${err instanceof Error ? err.message : "unknown error"}\n`,
+    );
+    return 2;
+  }
+  const verdict = verifyBundle(text, {
+    trustedKeys: trusted,
+    aegisVersion: rt.version,
+    currentVersion: "0.0.0",
+  });
+  if (!verdict.ok) {
+    rt.err(`aegis: the bundle is not acceptable: ${verdict.message}\n`);
+    return 2;
+  }
+  const scratch = await mkdtemp(path.join(os.tmpdir(), "aegis-check-"));
+  try {
+    const staged = await stageBundle(scratch, verdict.bundle.manifest);
+    const bad = staged.load.diagnostics.length > 0;
+    if (bad) {
+      rt.err(
+        `aegis: the signature is valid but the rules fail validation: ${staged.load.diagnostics.slice(0, 3).map(formatDiagnostic).join("; ")}\n`,
+      );
+      return 2;
+    }
+    const m = verdict.bundle.manifest;
+    rt.out(
+      `OK: bundle ${m.bundleVersion} is signed by trusted key '${m.keyId}' and its ${m.rules.length} rules validate.\n`,
+    );
+    return 0;
+  } finally {
+    await rmDir(scratch, { recursive: true, force: true });
   }
 }

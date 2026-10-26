@@ -18,6 +18,35 @@ rules:
       - pattern: $DB.execute("..." + $X, ...)
       - pattern: $DB.execute(`...${$Y}...`, ...)
 
+  # Taint rule: SQL text assembled in a variable from request data, then passed to query().
+  # The sink is limited to a plain variable name, so a direct "..." + req.x argument is reported
+  # only once, by aegis.js.sql-string-concat above.
+  - id: aegis.js.sql-tainted-variable
+    mode: taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      SQL text assembled from request data (req.query, req.body or req.params) reaches a query call.
+      Use bound parameters instead.
+    metadata:
+      aegis_rule_id: AEGIS-SEC-0001
+      aegis_severity: critical
+      confidence: LOW
+    pattern-sources:
+      - pattern-either:
+          - pattern: req.query
+          - pattern: req.body
+          - pattern: req.params
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.query($SQL, ...)
+              - pattern: $DB.execute($SQL, ...)
+          - focus-metavariable: $SQL
+          - metavariable-regex:
+              metavariable: $SQL
+              regex: ^[A-Za-z_$][A-Za-z0-9_$]*$
+
   - id: aegis.js.inner-html-assignment
     languages: [javascript, typescript]
     severity: WARNING
@@ -64,3 +93,16 @@ rules:
           - pattern: document.writeln($X)
       - pattern-not: document.write("...")
       - pattern-not: document.writeln("...")
+
+  - id: aegis.js.insert-adjacent-html
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      insertAdjacentHTML receives a non-constant value. Use insertAdjacentText or build DOM nodes with text content.
+    metadata:
+      aegis_rule_id: AEGIS-SEC-0002
+      aegis_severity: high
+      confidence: MEDIUM
+    patterns:
+      - pattern: $EL.insertAdjacentHTML($POS, $X)
+      - pattern-not: $EL.insertAdjacentHTML($POS, "...")

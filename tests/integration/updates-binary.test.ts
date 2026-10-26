@@ -61,7 +61,7 @@ describe("signed rule updates through the built binary", () => {
         "--key-id",
         "e2e-key",
         "--bundle-version",
-        "0.2.0",
+        "1.0.0",
         "--out",
         "b.json",
       ],
@@ -76,14 +76,14 @@ describe("signed rule updates through the built binary", () => {
     const bundle = path.join(pub, "b.json");
     const ok = await aegis(["rules", "update", "--source", bundle, "--yes"], proj);
     expect(ok.code).toBe(0);
-    expect(ok.stdout).toContain("Verified: rules 0.2.0, signed by key 'e2e-key'");
-    expect((await aegis(["rules", "status"], proj)).stdout).toContain("installed 0.2.0");
+    expect(ok.stdout).toContain("Verified: rules 1.0.0, signed by key 'e2e-key'");
+    expect((await aegis(["rules", "status"], proj)).stdout).toContain("installed 1.0.0");
     expect((await aegis(["scan"], proj)).stdout).toContain("INCOMPLETE");
 
     const doc = JSON.parse(await readFile(bundle, "utf8")) as {
       manifest: { bundleVersion: string };
     };
-    doc.manifest.bundleVersion = "0.3.0";
+    doc.manifest.bundleVersion = "1.1.0";
     await writeFile(path.join(pub, "t.json"), JSON.stringify(doc));
     const bad = await aegis(
       ["rules", "update", "--source", path.join(pub, "t.json"), "--yes"],

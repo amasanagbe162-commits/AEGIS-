@@ -23,7 +23,7 @@ export const SEMGREP_RULES_FILE = path.resolve(
 );
 
 /** Version of the rule set that ships inside this package. Bump it when bundled rules change. */
-export const BASELINE_RULES_VERSION = "0.1.0";
+export const BASELINE_RULES_VERSION = "0.2.0";
 
 /**
  * Public keys built into AEGIS that may sign rule bundles. EMPTY on purpose: no official signing key

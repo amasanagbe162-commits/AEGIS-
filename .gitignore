@@ -11,3 +11,9 @@ coverage/
 npm-debug.log*
 .vscode/
 .idea/
+
+# Signing keys must never be committed. Create them outside the repository (aegis rules keygen).
+*.private.pem
+*.p12
+aegis-keys/
+.aegis/state/

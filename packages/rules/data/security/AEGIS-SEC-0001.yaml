@@ -32,6 +32,7 @@ limitations:
   - Placeholders cannot be used for identifiers such as table or column names. Those need an allowlist of known values.
   - Parameterization does not replace input validation or authorization checks.
   - ORM raw-query escape hatches can reintroduce the problem.
+  - Detection is heuristic. It finds query() and execute() calls whose text is concatenated or interpolated, and SQL assembled in a variable from req.query, req.body or req.params. It does not follow values through function calls or other sources, so a clean scan is not proof of safety.
 prevention:
   - Use bound parameters or a query builder for every value.
   - Allowlist dynamic identifiers (column names, sort direction) instead of interpolating them.
@@ -41,14 +42,35 @@ verification:
   - Run the relevant tests, including one with a quote character in the input.
   - Review any raw-query calls in ORM code.
 references:
-  - https://owasp.org/www-community/attacks/SQL_Injection
   - https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html
 scanner:
   tool: semgrep
   ruleRef: aegis.js.sql-string-concat
 tests:
-  - tests/fixtures/vulnerable/sql.js (string-built SQL) is reported by the Semgrep rule.
-  - tests/fixtures/corrected/sql.js (bound parameters) is not reported.
-  - Known gap - SQL assembled in a variable first and passed to query() later is not detected.
-version: 1.0.0
-status: proposed
+  - tests/fixtures/vulnerable/sql.js (string-built SQL, three direct shapes) is reported by aegis.js.sql-string-concat.
+  - tests/fixtures/vulnerable/sql.js (SQL assembled in a variable from req.query, then passed to query()) is reported by aegis.js.sql-tainted-variable.
+  - tests/fixtures/corrected/sql.js (bound parameters, including a LIKE pattern passed as a parameter) is not reported.
+  - tests/rules/rule-examples.test.ts runs this rule's bad and good examples against a recording fake driver. The bad one sends an injected quote inside the SQL text, and the good one sends fixed SQL text with the value as a parameter.
+  - Known gap - SQL built from values that did not come from req.* directly, or assembled in another function, is not detected.
+version: 1.1.0
+status: approved
+review:
+  reviewerKind: ai-assisted
+  reviewer: Claude (AI model), at the request of the project owner
+  reviewedAt: 2026-10-26
+  gates:
+    - metadata-valid
+    - description-accurate
+    - severity-justified
+    - examples-technically-correct
+    - corrected-example-solves-the-problem
+    - references-legitimate
+    - tests-pass
+    - scanner-configuration-safe
+    - behavior-documented
+    - no-secrets
+    - dangerous-examples-not-executed-by-tooling
+    - compatibility-clear
+  notes: >-
+    Examples executed against a fake driver by tests/rules/rule-examples.test.ts. Semgrep rules measured on fixtures with real Semgrep 1.182.1 (all direct and variable-assembled samples reported once, corrected samples not reported). OWASP SQL injection and query parameterization cheat-sheet URLs confirmed against search results on 2026-10-26. Critical severity is justified by direct data access and tampering. Confidence is high that the pattern is dangerous, while detection confidence is lower. This is an AI-assisted review. A human maintainer has not yet confirmed it.

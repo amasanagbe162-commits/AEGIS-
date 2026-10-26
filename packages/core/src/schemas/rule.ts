@@ -30,6 +30,38 @@ export const ruleIdSchema = z
  */
 export const reviewStatusSchema = z.enum(["proposed", "approved", "rejected", "superseded"]);
 
+/**
+ * The quality gates from the master specification (section 23). A rule may only be `approved`
+ * when a reviewer states that every gate was checked. Syntax validation alone never approves a rule.
+ */
+export const REVIEW_GATES = [
+  "metadata-valid",
+  "description-accurate",
+  "severity-justified",
+  "examples-technically-correct",
+  "corrected-example-solves-the-problem",
+  "references-legitimate",
+  "tests-pass",
+  "scanner-configuration-safe",
+  "behavior-documented",
+  "no-secrets",
+  "dangerous-examples-not-executed-by-tooling",
+  "compatibility-clear",
+] as const;
+export type ReviewGate = (typeof REVIEW_GATES)[number];
+
+export const ruleReviewSchema = z
+  .object({
+    /** "human" means a person reviewed it. "ai-assisted" means an AI model reviewed it and a person has not yet confirmed. */
+    reviewerKind: z.enum(["human", "ai-assisted"]),
+    reviewer: shortText(80),
+    reviewedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be a date like 2026-10-26"),
+    gates: z.array(z.enum(REVIEW_GATES)).min(1).max(REVIEW_GATES.length),
+    notes: longText(1000).optional(),
+  })
+  .strict();
+export type RuleReview = z.infer<typeof ruleReviewSchema>;
+
 /** An example is INERT TEXT. It is stored and displayed, never executed or evaluated. */
 export const exampleSchema = z
   .object({
@@ -92,7 +124,27 @@ export const ruleSchema = z
     tests: z.array(shortText(500)).max(15).default([]),
     version: semverSchema,
     status: reviewStatusSchema,
+    review: ruleReviewSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((rule, ctx) => {
+    if (rule.status !== "approved") return;
+    if (!rule.review) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["review"],
+        message: "an approved rule must record who reviewed it",
+      });
+      return;
+    }
+    const missing = REVIEW_GATES.filter((g) => !rule.review?.gates.includes(g));
+    if (missing.length > 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["review", "gates"],
+        message: `an approved rule must pass every quality gate; missing: ${missing.join(", ")}`,
+      });
+    }
+  });
 
 export type Rule = z.infer<typeof ruleSchema>;

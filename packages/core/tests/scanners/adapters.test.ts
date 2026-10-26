@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -413,6 +413,36 @@ describe("osv-scanner adapter", () => {
   it("passes only on exit 0 with a readable report", async () => {
     expect((await run(0, '{"results":[]}')).outcome).toBe("passed");
     expect((await run(0, "nope")).outcome).toBe("tool-error");
+  });
+
+  // REAL output: captured from OSV-Scanner 2.2.2 scanning tests/fixtures/vulnerable-deps/package-lock.json
+  // with `--offline-vulnerabilities` against a local advisory database (the sandbox could not reach
+  // api.osv.dev). The report FORMAT is the real tool's. The advisory record behind it was written by hand.
+  it("maps a real OSV-Scanner 2.2.2 report of a vulnerable lockfile to a finding", async () => {
+    const real = await readFile(
+      new URL("../../../../tests/fixtures/osv-real/vulnerable-lockfile.json", import.meta.url),
+      "utf8",
+    );
+    expect(JSON.parse(real)).toHaveProperty("experimental_config");
+    const r = await run(1, real);
+    expect(r.outcome).toBe("findings");
+    expect(r.findings).toHaveLength(1);
+    expect(r.findings[0]).toMatchObject({
+      title: "Vulnerable dependency: lodash 4.17.15",
+      severity: "high",
+      status: "finding",
+      location: { file: "package-lock.json" },
+    });
+    expect(r.findings[0]?.message).toContain("GHSA-35jh-r3h4-6jhm: Command Injection in lodash");
+    expect(r.findings[0]?.message).toContain("reachable");
+  });
+
+  it("never treats the real vulnerable report as clean, even if the exit code were 0", async () => {
+    const real = await readFile(
+      new URL("../../../../tests/fixtures/osv-real/vulnerable-lockfile.json", import.meta.url),
+      "utf8",
+    );
+    expect((await run(0, real)).outcome).toBe("findings");
   });
 
   // SYNTHETIC data written from the documented v2 output format. Not captured from a real

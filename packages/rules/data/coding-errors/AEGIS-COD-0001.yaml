@@ -37,19 +37,41 @@ assumptions:
 limitations:
   - Intentional fire-and-forget work is valid, but it still needs its own error handling such as a catch that logs.
   - Do not log sensitive request data when reporting errors.
+  - The ESLint rule needs type information (a TypeScript project with typed linting), and AEGIS only runs it when the project's own ESLint is allowed to run.
 prevention:
   - Use await or return the promise, and handle errors in a try/catch or a central error handler.
   - Enable lint rules such as no-floating-promises where available.
+  - Do not use a global unhandledRejection handler to hide failures. Handle the error where the promise is created.
 verification:
   - Run tests that make the dependency fail and confirm the caller sees an error.
   - Run the linter with floating-promise checks enabled.
 references:
-  - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
-  - https://typescript-eslint.io/rules/no-floating-promises/
+  - https://typescript-eslint.io/rules/no-floating-promises
+  - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises
 scanner:
   tool: eslint
   ruleRef: "@typescript-eslint/no-floating-promises"
 tests:
-  - A project whose own ESLint config enables the rule reports unawaited promises through the lint check. AEGIS does not ship an ESLint config, and the lint check only runs when project tools are allowed.
-version: 1.0.0
-status: proposed
+  - tests/rules/rule-examples.test.ts runs both examples with a failing saveOrder. The bad handler answers 201 although the work failed and leaves an unhandled rejection. The good handler answers 500 and leaves none.
+  - A project whose own ESLint config enables @typescript-eslint/no-floating-promises reports unawaited promises through the lint check. AEGIS does not ship an ESLint config, and the check only runs when project tools are allowed. The ESLint runner itself is verified against real ESLint 9 in tests/integration/real-tools.test.ts.
+version: 1.1.0
+status: approved
+review:
+  reviewerKind: ai-assisted
+  reviewer: Claude (AI model), at the request of the project owner
+  reviewedAt: 2026-10-26
+  gates:
+    - metadata-valid
+    - description-accurate
+    - severity-justified
+    - examples-technically-correct
+    - corrected-example-solves-the-problem
+    - references-legitimate
+    - tests-pass
+    - scanner-configuration-safe
+    - behavior-documented
+    - no-secrets
+    - dangerous-examples-not-executed-by-tooling
+    - compatibility-clear
+  notes: >-
+    Examples executed with a failing dependency by tests/rules/rule-examples.test.ts, including detection of the unhandled rejection. The ESLint runner is verified against real ESLint. The typescript-eslint documentation URL and the MDN Using promises guide URL were confirmed against search results on 2026-10-26. The Express 5 note matches Express 5's documented handling of rejected promises. Medium severity and high confidence are justified by silent failures being common but rarely directly exploitable. This is an AI-assisted review. A human maintainer has not yet confirmed it.

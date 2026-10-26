@@ -56,69 +56,72 @@ describe("hostile input to the parsers", () => {
   });
 });
 
-describe("a repository that ships .aegis as a symbolic link", () => {
-  async function trap() {
-    const project = await temp();
-    const target = await temp();
-    await writeFile(path.join(project, "package.json"), "{}");
-    await symlink(target, path.join(project, ".aegis"));
-    return { project, target };
-  }
+describe.skipIf(process.platform === "win32")(
+  "a repository that ships .aegis as a symbolic link",
+  () => {
+    async function trap() {
+      const project = await temp();
+      const target = await temp();
+      await writeFile(path.join(project, "package.json"), "{}");
+      await symlink(target, path.join(project, ".aegis"));
+      return { project, target };
+    }
 
-  it("learning records are not written through it", async () => {
-    const { project, target } = await trap();
-    const c = makeRuntime(project);
-    expect(
-      await aegis(["learn", "add", "--title", "T", "--issue", "I", "--category", "security"], c),
-    ).toBe(2);
-    expect(await readdir(target)).toEqual([]);
-  });
-
-  it("the Stop hook writes nothing there, and fails open instead of blocking without a limit", async () => {
-    const { project, target } = await trap();
-    const finding: Finding = {
-      title: "Possible SQL injection",
-      message: "m",
-      severity: "critical",
-      confidence: "high",
-      status: "finding",
-    };
-    const runners: Record<string, CheckRunner> = Object.fromEntries(
-      [
-        "secrets",
-        "static-analysis",
-        "typecheck",
-        "lint",
-        "dependency-audit",
-        "dependency-vulnerabilities",
-      ].map((id) => [
-        id,
-        id === "static-analysis"
-          ? async () => ({ outcome: "findings" as const, findings: [finding] })
-          : async () => ({ outcome: "passed" as const, findings: [] }),
-      ]),
-    );
-    const c = makeRuntime(project, {
-      runners,
-      readStdin: async () => JSON.stringify({ session_id: "s", cwd: project }),
+    it("learning records are not written through it", async () => {
+      const { project, target } = await trap();
+      const c = makeRuntime(project);
+      expect(
+        await aegis(["learn", "add", "--title", "T", "--issue", "I", "--category", "security"], c),
+      ).toBe(2);
+      expect(await readdir(target)).toEqual([]);
     });
-    expect(await aegis(["hook", "claude-stop"], c)).toBe(0);
-    expect(c.stdout()).toContain("cannot record its attempt count");
-    expect(await readdir(target)).toEqual([]);
-  });
 
-  it("a rule update is not staged through it", async () => {
-    const { project, target } = await trap();
-    const manifest = {
-      bundleVersion: "9.0.0",
-      minAegisVersion: "0.0.0",
-      createdAt: "2026-10-25T12:00:00.000Z",
-      keyId: "k",
-      rules: [{ path: "security/AEGIS-SEC-0001.yaml", content: "id: x\n" }],
-    } as const;
-    await expect(stageBundle(project, { ...manifest, rules: [...manifest.rules] })).rejects.toThrow(
-      "symbolic link",
-    );
-    expect(await readdir(target)).toEqual([]);
-  });
-});
+    it("the Stop hook writes nothing there, and fails open instead of blocking without a limit", async () => {
+      const { project, target } = await trap();
+      const finding: Finding = {
+        title: "Possible SQL injection",
+        message: "m",
+        severity: "critical",
+        confidence: "high",
+        status: "finding",
+      };
+      const runners: Record<string, CheckRunner> = Object.fromEntries(
+        [
+          "secrets",
+          "static-analysis",
+          "typecheck",
+          "lint",
+          "dependency-audit",
+          "dependency-vulnerabilities",
+        ].map((id) => [
+          id,
+          id === "static-analysis"
+            ? async () => ({ outcome: "findings" as const, findings: [finding] })
+            : async () => ({ outcome: "passed" as const, findings: [] }),
+        ]),
+      );
+      const c = makeRuntime(project, {
+        runners,
+        readStdin: async () => JSON.stringify({ session_id: "s", cwd: project }),
+      });
+      expect(await aegis(["hook", "claude-stop"], c)).toBe(0);
+      expect(c.stdout()).toContain("cannot record its attempt count");
+      expect(await readdir(target)).toEqual([]);
+    });
+
+    it("a rule update is not staged through it", async () => {
+      const { project, target } = await trap();
+      const manifest = {
+        bundleVersion: "9.0.0",
+        minAegisVersion: "0.0.0",
+        createdAt: "2026-10-25T12:00:00.000Z",
+        keyId: "k",
+        rules: [{ path: "security/AEGIS-SEC-0001.yaml", content: "id: x\n" }],
+      } as const;
+      await expect(
+        stageBundle(project, { ...manifest, rules: [...manifest.rules] }),
+      ).rejects.toThrow("symbolic link");
+      expect(await readdir(target)).toEqual([]);
+    });
+  },
+);

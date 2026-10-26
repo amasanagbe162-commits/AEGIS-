@@ -2,7 +2,7 @@
 
 AEGIS is in early development and is **not published to npm yet**. Install it from source.
 
-> **Do not run `npx aegis-guard`.** A package with that name exists on npm, but it is an unrelated project (not this one). The final published name for AEGIS has not been chosen yet.
+> **Do not run `npx aegis-guard` or `npx aegis`.** Packages with those names exist on npm, but they are unrelated projects (not this one). AEGIS's chosen package name is **`aegis-engineering`** (free on npm when last checked, not yet published or reserved), so `npx aegis-engineering` will only work after it is published. Until then, install from source.
 
 ## Requirements
 
@@ -31,8 +31,8 @@ Inside the repository, `npx aegis` runs the CLI. To use it in another project, r
 # one-off, from your own project folder
 node /path/to/aegis/packages/cli/bin/aegis.js scan
 
-# or link the command globally (undo with: npm unlink -g @aegis/cli)
-npm link -w @aegis/cli
+# or link the `aegis` command globally (the package also installs an `aegis-engineering` alias) (undo with: npm unlink -g aegis-engineering)
+npm link -w aegis-engineering
 cd /path/to/your/project
 aegis scan
 ```

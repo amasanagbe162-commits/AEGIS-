@@ -55,6 +55,27 @@ jobs:
           echo "$HOME/tools" >> "$GITHUB_PATH"
       - run: npm ci
       - run: npm run build
-      - run: npx vitest run tests/integration/real-tools.test.ts tests/integration/agents-binary.test.ts
+      - run: npx vitest run tests/integration/real-tools.test.ts tests/integration/agent-clis.test.ts tests/integration/agents-binary.test.ts tests/rules
       - name: Scan this repository for secrets
         run: gitleaks dir . --redact --no-banner --no-color
+
+  # macOS and Windows have never been run by the author (the development environment is Linux).
+  # This job exists to find out. continue-on-error keeps a platform-specific failure from blocking
+  # work while it is being triaged; remove it once both platforms pass, and then update
+  # docs/acceptance.md. A green run here is the ONLY evidence AEGIS works on those systems.
+  cross-platform:
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test

@@ -5,7 +5,7 @@ Status: design document (Phase 1). Nothing described here as PLANNED exists yet.
 ## 1. Current repository state (inspected)
 
 - One commit on `main`: tooling and community files only.
-- Three placeholder packages (`@aegis/core`, `@aegis/cli`, `@aegis/rules`), each exporting one constant and having one trivial test.
+- Three placeholder packages (`@aegis/core`, `aegis-engineering`, `@aegis/rules`), each exporting one constant and having one trivial test.
 - Passing: lint, format check, typecheck, build, tests (3), clean `npm ci` install.
 - Not present: the `.aegis` format, rules, parser, engine, CLI commands, scanner integrations, agent integrations.
 - `docs/AEGIS-MASTER-SPEC.md` is referenced by the roadmap and must be added by the maintainer from their local copy.

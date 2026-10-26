@@ -143,24 +143,30 @@ describe("store", () => {
     });
   });
 
-  it("reports damaged, mismatched and symlinked files instead of dropping them silently", async () => {
-    await withTempDir(async (dir) => {
-      const d = path.join(dir, ".aegis/learning");
-      await mkdir(d, { recursive: true });
-      await writeFile(path.join(d, "LR-0001.json"), "{ nope");
-      await writeFile(path.join(d, "LR-0002.json"), JSON.stringify(record({ id: "LR-0003" })));
-      await writeFile(path.join(dir, "elsewhere.json"), JSON.stringify(record({ id: "LR-0004" })));
-      await symlink(path.join(dir, "elsewhere.json"), path.join(d, "LR-0004.json"));
-      const loaded = await loadRecords(dir);
-      expect(loaded.records).toEqual([]);
-      expect(loaded.problems.map((p) => p.file)).toEqual([
-        "LR-0001.json",
-        "LR-0002.json",
-        "LR-0004.json",
-      ]);
-      expect(loaded.problems[1]?.message).toContain("does not match");
-      // damaged files still reserve their ids so a new record can never collide
-      expect(nextId(loaded.records, loaded.problems)).toBe("LR-0005");
-    });
-  });
+  it.skipIf(process.platform === "win32")(
+    "reports damaged, mismatched and symlinked files instead of dropping them silently",
+    async () => {
+      await withTempDir(async (dir) => {
+        const d = path.join(dir, ".aegis/learning");
+        await mkdir(d, { recursive: true });
+        await writeFile(path.join(d, "LR-0001.json"), "{ nope");
+        await writeFile(path.join(d, "LR-0002.json"), JSON.stringify(record({ id: "LR-0003" })));
+        await writeFile(
+          path.join(dir, "elsewhere.json"),
+          JSON.stringify(record({ id: "LR-0004" })),
+        );
+        await symlink(path.join(dir, "elsewhere.json"), path.join(d, "LR-0004.json"));
+        const loaded = await loadRecords(dir);
+        expect(loaded.records).toEqual([]);
+        expect(loaded.problems.map((p) => p.file)).toEqual([
+          "LR-0001.json",
+          "LR-0002.json",
+          "LR-0004.json",
+        ]);
+        expect(loaded.problems[1]?.message).toContain("does not match");
+        // damaged files still reserve their ids so a new record can never collide
+        expect(nextId(loaded.records, loaded.problems)).toBe("LR-0005");
+      });
+    },
+  );
 });

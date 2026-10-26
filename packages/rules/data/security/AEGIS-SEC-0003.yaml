@@ -30,19 +30,39 @@ assumptions:
 limitations:
   - Environment variables can still leak through logs, crash dumps or child processes.
   - Pattern-based detection misses secrets that do not match known formats and may flag harmless test values.
+  - The scanner checks files in the working tree. Secrets already in Git history need a history scan, and any exposed secret must be rotated.
 prevention:
-  - Read secrets from the environment or a secrets manager.
+  - Read secrets from the environment or a secrets manager (process.env in Node.js, os.environ in Python).
   - Add .env files to .gitignore and commit only a .env.example with fake values.
   - Run a secret scanner before committing.
 verification:
   - Run a secret scanner over the working tree and history when the tool is available.
   - If a real credential was committed, treat it as compromised and rotate it.
 references:
-  - https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password
   - https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
 scanner:
   tool: gitleaks
 tests:
-  - A generated project containing a high-entropy fictional key is reported by the Gitleaks check. Detection depends on Gitleaks's own rules, so low-entropy or unusual secrets can be missed.
-version: 1.0.0
-status: proposed
+  - A generated project containing a high-entropy fictional key is reported by the Gitleaks check (tests/integration/real-tools.test.ts, run against real Gitleaks 8.28.0). Detection depends on Gitleaks's own rules, so low-entropy or unusual secrets can be missed.
+  - tests/rules/rule-examples.test.ts runs this rule's examples. The bad one uses the literal value whatever the environment says, and the good one reads the environment and throws when the variable is missing.
+version: 1.1.0
+status: approved
+review:
+  reviewerKind: ai-assisted
+  reviewer: Claude (AI model), at the request of the project owner
+  reviewedAt: 2026-10-26
+  gates:
+    - metadata-valid
+    - description-accurate
+    - severity-justified
+    - examples-technically-correct
+    - corrected-example-solves-the-problem
+    - references-legitimate
+    - tests-pass
+    - scanner-configuration-safe
+    - behavior-documented
+    - no-secrets
+    - dangerous-examples-not-executed-by-tooling
+    - compatibility-clear
+  notes: >-
+    Examples executed by tests/rules/rule-examples.test.ts. Gitleaks behavior verified against the real binary. The rule text and examples contain only a fictional placeholder value and pass the repository's secret scan. The OWASP Secrets Management cheat sheet is listed in the OWASP Top Ten cheat-sheet index on 2026-10-26, and its URL follows the same published scheme as the pages opened directly. Critical severity is justified because anyone with the code can use the credential. This is an AI-assisted review. A human maintainer has not yet confirmed it.

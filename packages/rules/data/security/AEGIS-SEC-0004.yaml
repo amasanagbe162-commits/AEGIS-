@@ -37,7 +37,8 @@ assumptions:
   - Each record has a clear owner or permission model.
 limitations:
   - Applications with roles, teams or sharing need a fuller permission check than a single owner column.
-  - Static tools find this class of flaw poorly, so tests and review matter more than scanning.
+  - Static tools find this class of flaw poorly, so tests and review matter more than scanning. AEGIS ships no scanner rule for it.
+  - The example covers reading one record. List, update, delete and bulk endpoints need the same scoping, and so do records reached through related ids.
 prevention:
   - Scope every query by the authenticated principal or run an explicit permission check.
   - Centralize authorization logic instead of repeating it per route.
@@ -46,9 +47,29 @@ verification:
   - Write a test that logs in as user A and requests user B's record, and expect a denial.
   - Review every route that takes an identifier from the client.
 references:
-  - https://owasp.org/Top10/A01_2021-Broken_Access_Control/
   - https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
+  - https://owasp.org/www-project-top-ten/
 tests:
-  - An integration test requesting another user's record should receive a denial. Automated detection is not expected from scanners.
-version: 1.0.0
-status: proposed
+  - tests/rules/rule-examples.test.ts runs both examples against an in-memory fake with two users. The bad handler returns user B's invoice to user A. The good handler returns it only to its owner and answers 404 to everyone else.
+  - A real project should add its own integration test that logs in as user A and requests user B's record. AEGIS cannot detect this flaw automatically.
+version: 1.1.0
+status: approved
+review:
+  reviewerKind: ai-assisted
+  reviewer: Claude (AI model), at the request of the project owner
+  reviewedAt: 2026-10-26
+  gates:
+    - metadata-valid
+    - description-accurate
+    - severity-justified
+    - examples-technically-correct
+    - corrected-example-solves-the-problem
+    - references-legitimate
+    - tests-pass
+    - scanner-configuration-safe
+    - behavior-documented
+    - no-secrets
+    - dangerous-examples-not-executed-by-tooling
+    - compatibility-clear
+  notes: >-
+    Examples executed against an in-memory fake with two users by tests/rules/rule-examples.test.ts. No scanner is configured, which the rule states. The OWASP IDOR cheat-sheet URL and the OWASP Top 10 project URL were confirmed against search results on 2026-10-26. High severity is justified, and medium confidence reflects that exploitability depends on the application's permission model. This is an AI-assisted review. A human maintainer has not yet confirmed it.
