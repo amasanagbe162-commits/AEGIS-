@@ -1,84 +1,124 @@
 # Acceptance criteria: where AEGIS stands
 
-This maps section 29 of the master specification to evidence. "Met" means a test or a documented procedure shows it. Anything else says exactly what is missing. As of this page, **AEGIS v1.0 is not ready for release** (see the open items).
+This maps section 29 of the master specification to evidence. **Met** means a test or a documented procedure shows it. Anything else says exactly what is missing.
 
-Verified on 2026-10-25: Node 22, Linux x86-64, fresh clone, `npm ci`, lint, format check, typecheck, build and tests all pass (369 passed, 7 skipped on a machine without scanners; 376 passed, 0 skipped with Gitleaks 8.28.0, Semgrep 1.182.1 and OSV-Scanner 2.2.2 installed).
+**Summary: AEGIS is feature-complete for the specification's first version and well tested on Linux. It is not published, and four things need a person before a public release** (see "Open items" at the end).
+
+## Verified results
+
+Run on 2026-10-26: Linux x86-64, Node 22, npm 10.9.7, with the real scanners installed (Gitleaks 8.28.0, Semgrep 1.182.1, OSV-Scanner 2.2.2) and real network access to the npm registry.
+
+| Check                                                                      | Result                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Lint (`npm run lint`)                                                      | Pass                                                                                                                                                                                                                                                         |
+| Formatting                                                                 | Pass                                                                                                                                                                                                                                                         |
+| Type check                                                                 | Pass, 0 errors                                                                                                                                                                                                                                               |
+| Production build                                                           | Pass                                                                                                                                                                                                                                                         |
+| Full test suite, scanners installed                                        | **427 passed, 0 failed, 0 skipped** (36 files)                                                                                                                                                                                                               |
+| Full test suite in a fresh clone, no scanners installed                    | See the "Fresh clone" line in the README status section                                                                                                                                                                                                      |
+| `npm audit`                                                                | 0 vulnerabilities (dev and production). A moderate minimatch advisory (GHSA-g3hv-75wg-m249) appeared in the lint toolchain during this review and is resolved by an `overrides` entry in the root `package.json`; remove it once eslint accepts minimatch 11 |
+| Gitleaks, working tree                                                     | No leaks, with no ignore file                                                                                                                                                                                                                                |
+| Gitleaks, full git history                                                 | No leaks, using the reviewed fingerprints in `.github/gitleaks-history.ignore` (fictional test strings that earlier commits contained)                                                                                                                       |
+| AEGIS scanning its own repository, `--level maximum --allow-project-tools` | Secrets, Semgrep, tsc, ESLint, `npm audit`: **passed**. OSV-Scanner: tool error (the service `api.osv.dev` was unreachable), so the overall result is **INCOMPLETE (exit 3)**, correctly not "clean"                                                         |
+
+## Problems this review found in AEGIS itself, and fixed
+
+Running the tool on its own repository and against the real scanners found real defects. They are fixed, each with a regression test that fails when the fix is removed.
+
+1. **The secret check could be silenced by the project it scans.** A `// gitleaks:allow` comment or a project `.gitleaks.toml` allowlist hid a real secret and the scan said CLEAN. AEGIS now uses its own Gitleaks config, ignores allow-comments, and refuses to trust a scan when a `.gitleaksignore` exists (Gitleaks always obeys that file and no flag disables it).
+2. **A leaked secret did not block at the default level.** It was reported as `high` but `standard` blocks only `critical`. Exposed credentials are now critical and block at every level.
+3. **`Result: CLEAN` was printed next to a list of findings.** It now says "NO BLOCKING FINDINGS ... not a clean result".
+4. **Writes under `.aegis/` followed symbolic links.** A hostile repository could redirect them. Fixed for learning records, the hook state and rule installs.
+5. **The Claude hook could block forever** if it could not save its attempt counter. It now fails open and says so.
+6. **A protection I first added did nothing.** The `--gitleaks-ignore-path` flag had no effect, and its test passed vacuously. Mutation testing (removing the flag changed nothing) exposed it, and it was replaced by the fail-closed guard in item 1.
 
 ## Core engine
 
-| Criterion                                       | Status                                             | Evidence                                                             |
-| ----------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------- |
-| `.aegis` format documented                      | Met                                                | `formats/aegis-file-spec.md`, JSON schemas in `formats/`             |
-| Master instructions reference specialized rules | Met                                                | master references checked by `aegis rules validate`                  |
-| Rules parsed and validated                      | Met                                                | parser/loader tests, hostile-input tests in `tests/security`         |
-| Project technologies detected                   | Met for JS/TS, Node, Next.js, Python/SQL selection | detection tests. Rust and Go files are recognized but have no rules. |
-| Relevant rules selected                         | Met                                                | selection tests                                                      |
-| Findings represented consistently               | Met                                                | findings model and tests                                             |
-| Reports generated                               | Met                                                | text and JSON reports                                                |
-| Offline operation works                         | Met                                                | baseline rules ship in the package; updates are off by default       |
+| Criterion                                       | Status                                                      | Evidence                                                                                                             |
+| ----------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `.aegis` format documented                      | Met                                                         | `formats/aegis-file-spec.md`, JSON schemas in `formats/`                                                             |
+| Master instructions reference specialized rules | Met                                                         | checked by `aegis rules validate`                                                                                    |
+| Rules parsed and validated                      | Met                                                         | parser and loader tests; hostile-input tests (YAML aliases, tags, oversize, prototype pollution) in `tests/security` |
+| Project technologies detected                   | Met for JS/TS, Node, Next.js; Python and SQL rule selection | detection tests. Rust and Go files are recognized but have no rules                                                  |
+| Relevant rules selected                         | Met                                                         | selection tests                                                                                                      |
+| Findings represented consistently               | Met                                                         | findings model and tests                                                                                             |
+| Reports generated                               | Met                                                         | text and JSON                                                                                                        |
+| Offline operation works                         | Met                                                         | baseline rules ship in the package; updates are off by default                                                       |
 
 ## CLI
 
-| Criterion                          | Status | Evidence                                                                             |
-| ---------------------------------- | ------ | ------------------------------------------------------------------------------------ |
-| Initialization works               | Met    | `aegis init`, tests, fresh-clone run                                                 |
-| Scanning works for supported cases | Met    | real Gitleaks and Semgrep end to end; see [scanner-accuracy.md](scanner-accuracy.md) |
-| Rule validation works              | Met    | `aegis rules validate`, CI workflow `rule-validation.yml`                            |
-| Diagnostics work                   | Met    | `aegis doctor`                                                                       |
-| Errors and exit codes meaningful   | Met    | exit codes 0/1/2/3 documented in [troubleshooting.md](troubleshooting.md) and tested |
+| Criterion                          | Status | Evidence                                                                                       |
+| ---------------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
+| Initialization works               | Met    | `aegis init`, unit and built-binary tests, fresh clone                                         |
+| Scanning works for supported cases | Met    | real Gitleaks, Semgrep, npm audit, ESLint, tsc; see [scanner-accuracy.md](scanner-accuracy.md) |
+| Rule validation works              | Met    | `aegis rules validate`; CI workflow `rule-validation.yml`                                      |
+| Diagnostics work                   | Met    | `aegis doctor`                                                                                 |
+| Errors and exit codes meaningful   | Met    | exit codes 0/1/2/3 documented and tested                                                       |
 
 ## Protection library
 
-| Criterion                                  | Status              | Evidence                                                                                                |
-| ------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| Initial security rules                     | Partly met          | 4 security rules (SQL injection, XSS, hardcoded credentials, server-side ownership)                     |
-| Initial coding-error rules                 | Partly met          | 1 rule (asynchronous errors); the spec's list is far longer                                             |
-| Bad and corrected examples                 | Met for the 6 rules | each rule has both, plus fixtures in `tests/fixtures`                                                   |
-| Rules tested or have documented validation | Partly met          | Semgrep-backed rules measured on fixtures; rules with no scanner (e.g. ownership checks) rely on review |
-| Vulnerable fixtures isolated               | Met                 | `tests/fixtures/vulnerable` is never executed or imported                                               |
-| **Human review of rules**                  | **Not met**         | all 6 rules are `status: proposed`; a maintainer must approve them                                      |
+| Criterion                                                         | Status                           | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Initial security rules                                            | Partly met                       | 4 security rules: SQL injection, XSS, hardcoded credentials, server-side ownership. The specification lists many more areas                                                                                                                                                                                                                                                                                                                     |
+| Initial coding-error rules                                        | Partly met                       | 1 rule (asynchronous errors); the specification's list is far longer                                                                                                                                                                                                                                                                                                                                                                            |
+| Dependency rule                                                   | Met                              | 1 rule (verify packages before installing)                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Bad and corrected examples                                        | Met                              | every rule has both                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Examples are correct and the corrected one solves the problem** | **Met, by execution**            | `tests/rules/rule-examples.test.ts` runs each rule's bad and corrected example against in-memory fakes and asserts the claimed behavior; weakening a corrected example makes the tests fail                                                                                                                                                                                                                                                     |
+| Rules tested                                                      | Met                              | Semgrep-backed rules measured on fixtures (8 of 8 vulnerable lines reported once, none of the corrected reported); rules without a scanner say so in their own limitations                                                                                                                                                                                                                                                                      |
+| Vulnerable fixtures isolated                                      | Met                              | `tests/fixtures/vulnerable` is never executed or imported                                                                                                                                                                                                                                                                                                                                                                                       |
+| Reviewed and approved                                             | **Met on paper, not by a human** | All six rules are `approved`. The review was AI-assisted (Claude, at the project owner's request) and each rule's `review` record says so and lists the quality gates checked. **A human maintainer has not yet confirmed any rule.** Treat this as a strong draft, not an expert-reviewed library                                                                                                                                              |
+| References legitimate                                             | Mostly verified                  | The OWASP SQL, query-parameterization, XSS, DOM-XSS and IDOR cheat sheets, the OWASP Top 10 project page, the typescript-eslint rule page and the MDN "Using promises" guide were confirmed against search results on 2026-10-26. The OWASP Secrets Management and Vulnerable Dependency Management pages are listed in OWASP's own cheat-sheet index but their exact URLs were not opened, and the npm audit documentation page was not opened |
 
 ## Agent integrations
 
-| Criterion                             | Status           | Evidence                                                           |
-| ------------------------------------- | ---------------- | ------------------------------------------------------------------ |
-| Claude Code instructions generated    | Met (file level) | `.claude/rules/aegis.md`; Stop hook tested through the real binary |
-| GitHub Copilot instructions generated | Met (file level) | `.github/instructions/aegis.instructions.md`                       |
-| OpenAI Codex and ChatGPT              | Met (file level) | `AGENTS.md` block; paste-in text                                   |
-| Existing instruction files preserved  | Met              | tests, including byte-for-byte preservation                        |
-| Limitations documented                | Met              | [integrations.md](integrations.md), `aegis agents list`            |
-| **Tested inside live agent sessions** | **Not met**      | no live session with any of the four agents was available          |
+| Criterion                                | Status                      | Evidence                                                                                                                                                                                  |
+| ---------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code instructions generated       | Met                         | `.claude/rules/aegis.md`; Stop hook tested through the built binary                                                                                                                       |
+| Claude Code accepts the settings         | **Met, with the real tool** | Claude Code 2.1.310 accepts the generated hook settings and rejects a deliberately malformed one                                                                                          |
+| GitHub Copilot instructions generated    | Met                         | `.github/instructions/aegis.instructions.md`                                                                                                                                              |
+| Copilot finds them                       | **Met, with the real tool** | Copilot CLI 1.0.103 `instruction list` discovers the file                                                                                                                                 |
+| OpenAI Codex instructions generated      | Met                         | `AGENTS.md` block                                                                                                                                                                         |
+| Codex loads them                         | **Met, with the real tool** | Codex 0.164.0 `debug prompt-input` shows the block in the model-visible prompt                                                                                                            |
+| ChatGPT                                  | Paste-in text only          | **Untestable**: no command-line tool and no way to inspect account settings                                                                                                               |
+| Existing instruction files preserved     | Met                         | tests, including byte-for-byte preservation                                                                                                                                               |
+| The registered hook command is safe      | **Met, with real `npx`**    | runs a local install; without one it fails and never installs a package called `aegis` (tested against a decoy registry; without `--no-install` npm announces it would install the decoy) |
+| Limitations documented                   | Met                         | [integrations.md](integrations.md), `aegis agents list`                                                                                                                                   |
+| **Behavior inside a live model session** | **Not met**                 | No agent was run with credentials. Nothing shows that Claude fires the hook, or that any model follows its instructions                                                                   |
 
 ## Security
 
-| Criterion                                    | Status | Evidence                                                                              |
-| -------------------------------------------- | ------ | ------------------------------------------------------------------------------------- |
-| No secrets embedded                          | Met    | fixtures use fictional values; Gitleaks scan of the repo is part of release checklist |
-| Untrusted rules cannot execute code          | Met    | YAML aliases and tags refused, no eval, rules are data (`tests/security`)             |
-| Safe subprocess handling                     | Met    | argument arrays, no shell, timeouts, minimal environment                              |
-| Missing scanners reported honestly           | Met    | skipped checks make the result INCOMPLETE (exit 3)                                    |
-| Online updates optional and validated        | Met    | [updates.md](updates.md); Ed25519 signatures, version and compatibility checks        |
-| Sensitive data not uploaded by default       | Met    | the only network request is the optional update download                              |
-| Writes refuse symbolic links under `.aegis/` | Met    | `tests/security/hardening.test.ts` (each guard mutation-checked)                      |
+| Criterion                                    | Status                                             | Evidence                                                                                                                                                                                                      |
+| -------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No secrets embedded                          | Met                                                | real Gitleaks over the tree and full history is clean; a test fails if any file holds a private-key block                                                                                                     |
+| Untrusted rules cannot execute code          | Met                                                | YAML aliases and tags refused, no eval, rules are data. Rule examples are executed only by this repository's own tests, in a `node:vm` context with fakes, and only for the bundled rule files                |
+| Safe subprocess handling                     | Met                                                | argument arrays, no shell, timeouts, minimal environment                                                                                                                                                      |
+| Missing scanners reported honestly           | Met                                                | a skipped or failed tool makes the result INCOMPLETE (exit 3)                                                                                                                                                 |
+| The project cannot silence the secret scan   | Met                                                | see "Problems found" above                                                                                                                                                                                    |
+| Online updates optional and validated        | Met                                                | [updates.md](updates.md); Ed25519, version and compatibility checks, atomic install                                                                                                                           |
+| Official signing workflow                    | **Implemented and tested; the key does not exist** | `check-bundle`, key creation refused inside a repository, a manual workflow that reads the key only from a protected environment secret, tests that lint the workflow (including that it cannot echo the key) |
+| Sensitive data not uploaded by default       | Met                                                | the only network request in AEGIS is the optional update download                                                                                                                                             |
+| Writes refuse symbolic links under `.aegis/` | Met                                                | `tests/security/hardening.test.ts` (each guard mutation-checked)                                                                                                                                              |
+| Packages cannot be published by accident     | Met                                                | all packages `private: true`, tested; no workflow publishes or pushes (tested)                                                                                                                                |
 
 ## Quality
 
-| Criterion                          | Status                        | Evidence                                                                      |
-| ---------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- |
-| Automated tests pass               | Met                           | see numbers above                                                             |
-| Type checking passes               | Met                           | `npm run typecheck`                                                           |
-| Linting passes                     | Met                           | `npm run lint`                                                                |
-| Production build passes            | Met                           | `npm run build`                                                               |
-| Limitations documented             | Met                           | README, scanner-accuracy, integrations, updates, learning                     |
-| Installation instructions verified | Met for a repository checkout | fresh clone followed `docs/installation.md`                                   |
-| **Installable from npm**           | **Not met**                   | not published; the planned names are taken (see [releasing.md](releasing.md)) |
+| Criterion                                | Status                        | Evidence                                                                                                                                                                                                                  |
+| ---------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automated tests pass                     | Met                           | 427 passed                                                                                                                                                                                                                |
+| Type checking, linting, build            | Met                           | see results above                                                                                                                                                                                                         |
+| Limitations documented                   | Met                           | README, scanner-accuracy, integrations, updates, learning                                                                                                                                                                 |
+| Installation instructions verified       | Met for a repository checkout | a fresh clone followed `docs/installation.md`                                                                                                                                                                             |
+| **Installable from npm**                 | **Not met**                   | not published, by design. The chosen name `aegis-engineering` was free on 2026-10-26; check again before publishing                                                                                                       |
+| **macOS and Windows**                    | **Not tested**                | the development environment is Linux. A CI job runs both (`cross-platform` in `ci.yml`, non-blocking). Its first result is the only evidence. Obviously POSIX-only tests are skipped on Windows; the rest may need fixes  |
+| **OSV-Scanner against the live service** | **Not tested**                | `api.osv.dev` is unreachable from the development environment. The real tool's report format was captured offline with a hand-built advisory database and parsed in tests; what the live service returns was not observed |
 
-## Open items before a 1.0 release
+## Open items before a public release
 
-1. Choose and reserve an npm package name, and make the workspace packages publishable.
-2. A maintainer reviews and approves the rules; the library needs to grow well beyond six rules.
-3. Create the update signing key (or decide not to ship official updates yet).
-4. Test the integrations in live Claude Code, Copilot, Codex and ChatGPT sessions.
-5. Verify OSV-Scanner and `npm audit` vulnerable-result parsing against a run with network access.
-6. Test on macOS and Windows.
-7. The public website was deliberately deferred.
+These need a person. None can be done by the tool itself.
+
+1. **A human maintainer reviews the six rules** and either confirms them (changing `reviewerKind` and `reviewer` in each rule's `review` block) or sends them back. Until then, describe them as AI-reviewed.
+2. **Create the official signing key** (`aegis rules keygen`, on your own machine, outside any repository), add its public key to `TRUSTED_KEYS`, and store the private key as the `release-signing` environment secret. Or decide not to ship official updates yet.
+3. **Reserve the npm name `aegis-engineering`** and make the workspace packages publishable (see [releasing.md](releasing.md)). Nothing has been published or pushed.
+4. **Run CI on macOS and Windows**, and fix what it finds. Then test the integrations in live sessions of the agents you intend to support.
+
+Also worth knowing: the rule library is small (six rules) compared with the specification, and OSV-Scanner's live results and `npm audit` advisory grading for other ecosystems were not observed.
