@@ -67,7 +67,16 @@ export function renderText(report: ScanReport): string {
   }
   out.push("");
 
-  out.push(`Result: ${RESULT_LINE[report.verdict]} (exit code ${report.exitCode})`);
+  // "CLEAN" must never sit next to a list of findings. Findings below the blocking threshold are
+  // still findings: say so in the headline.
+  const nonBlocking = report.findings.filter(
+    (f) => f.status === "finding" || f.status === "confirmed-failure",
+  ).length;
+  const result =
+    report.verdict === "clean" && nonBlocking > 0
+      ? `NO BLOCKING FINDINGS: every planned check ran, but ${nonBlocking} non-blocking finding(s) are listed above. This is not a clean result.`
+      : RESULT_LINE[report.verdict];
+  out.push(`Result: ${result} (exit code ${report.exitCode})`);
   for (const n of report.notes) out.push(`  Note: ${n}`);
   return out.join("\n") + "\n";
 }

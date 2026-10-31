@@ -2,7 +2,7 @@
 
 AEGIS does not reimplement security scanners. It runs existing tools, normalizes their output into findings, and reports honestly when a tool did not run. AEGIS does **not** bundle or redistribute any of these tools: you install them yourself.
 
-Versions this was developed and tested against: Gitleaks 8.30.1, Semgrep 1.182.0, OSV-Scanner 2.7.0, npm 10.9.7. Tool command lines change between versions, so a different major version may need an update.
+Versions verified by running the real tools (2026-10-26): Gitleaks 8.28.0, Semgrep 1.182.1, OSV-Scanner 2.2.2, npm 10.9.7. Other versions may work but were not tested. Tool command lines change between versions, so a different major version may need an update. Gitleaks 8.18.4 is known NOT to work (no `dir` command).
 
 ## The checks
 
@@ -19,14 +19,14 @@ Versions this was developed and tested against: Gitleaks 8.30.1, Semgrep 1.182.0
 
 Every program is started by one function (`packages/core/src/process/run.ts`): no shell, arguments as an array, a fixed working directory, a time limit (`scan.toolTimeoutSeconds`, default 120), an output size cap (20 MB), and the whole process group is stopped on timeout. Scanners do not inherit your environment: only an allowlist of variables is passed (`PATH`, `HOME`, temp and locale settings, proxy and CA-certificate settings, `npm_config_*`). API tokens, cloud credentials and `NODE_OPTIONS` are not passed.
 
-| Tool        | Command (arguments)                                                                                       |
-| ----------- | --------------------------------------------------------------------------------------------------------- |
-| Gitleaks    | `gitleaks dir <project> --report-format json --report-path - --redact --no-banner --no-color`             |
-| Semgrep     | `semgrep scan --json --quiet --metrics=off --disable-version-check --config <AEGIS rules file> <project>` |
-| npm         | `npm audit --json --package-lock-only`                                                                    |
-| OSV-Scanner | `osv-scanner scan source --format json --lockfile <lockfile> ...`                                         |
-| tsc         | `node_modules/.bin/tsc --noEmit -p tsconfig.json --pretty false`                                          |
-| ESLint      | `node_modules/.bin/eslint --format json .`                                                                |
+| Tool        | Command (arguments)                                                                                                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gitleaks    | `gitleaks dir <project> --config <AEGIS-owned file> --ignore-gitleaks-allow --report-format json --report-path - --redact --no-banner --no-color` |
+| Semgrep     | `semgrep scan --json --quiet --metrics=off --disable-version-check --config <AEGIS rules file> <project>`                                         |
+| npm         | `npm audit --json --package-lock-only`                                                                                                            |
+| OSV-Scanner | `osv-scanner scan source --format json --lockfile <lockfile> ...`                                                                                 |
+| tsc         | `node_modules/.bin/tsc --noEmit -p tsconfig.json --pretty false`                                                                                  |
+| ESLint      | `node_modules/.bin/eslint --format json .`                                                                                                        |
 
 ## Network requests and what is sent
 
@@ -39,6 +39,20 @@ Every program is started by one function (`packages/core/src/process/run.ts`): n
 | tsc, ESLint | none                                                                                                                                  | none                                                           |
 
 If the network is unavailable, the two dependency checks end as `tool-error` with the reason. They never report "passed" in that case.
+
+## The secret check cannot be silenced by the project it scans
+
+Gitleaks can be told to ignore things from inside the project it scans, and so can anyone who edits that project, including an AI agent that wants a clean result. Each of these was tested against the real Gitleaks 8.28.0 and each hid a real secret from a plain scan:
+
+| Way to hide a secret                         | What AEGIS does                                                                                                                                                                                                                        |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A `// gitleaks:allow` comment on the line    | Ignored. AEGIS passes `--ignore-gitleaks-allow`                                                                                                                                                                                        |
+| A project `.gitleaks.toml` with an allowlist | Not read. AEGIS passes its own config (Gitleaks's default rules and nothing else) from a private temporary folder that is deleted afterwards                                                                                           |
+| A project `.gitleaksignore` file             | Gitleaks always reads it in directory mode and no flag turns that off, so AEGIS **refuses to trust the scan**: the check is a tool error, the overall result is INCOMPLETE (exit 3), and the message says to remove or rename the file |
+
+Exposed credentials are reported at the severity of the rule that governs them (`AEGIS-SEC-0003`, critical), so they block at **every** protection level, including the default. The report's confidence stays "medium", because a pattern cannot prove a value is a real credential.
+
+If you have a legitimate false positive (for example a fake key in a test), change the value so it no longer looks like a secret (build it from parts at run time) rather than suppressing it. This repository does exactly that. For scanning git history in CI, keep a reviewed ignore file outside the source folder and pass `--gitleaks-ignore-path` yourself.
 
 ## Tools from your project are opt-in
 

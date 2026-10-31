@@ -1,5 +1,0 @@
-# Reviewed false positives: fictional strings that the redaction tests feed in on purpose.
-# None of these are real credentials. Do not add real findings here; rotate and remove them instead.
-packages/core/tests/engine.test.ts:generic-api-key:192
-packages/core/tests/redaction.test.ts:generic-api-key:33
-packages/core/tests/redaction.test.ts:generic-api-key:60

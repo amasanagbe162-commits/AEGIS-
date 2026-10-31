@@ -125,3 +125,12 @@ describe.skipIf(process.platform === "win32")(
     });
   },
 );
+
+describe("the repository stays scannable by its own secret check", () => {
+  it("has no .gitleaksignore file, because AEGIS refuses to trust a scan when one exists", async () => {
+    const { existsSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+    expect(existsSync(path.join(root, ".gitleaksignore"))).toBe(false);
+  });
+});

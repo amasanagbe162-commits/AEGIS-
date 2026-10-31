@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -90,17 +90,43 @@ describe("gitleaks adapter", () => {
   it("calls gitleaks in directory mode with redaction and no shell", async () => {
     const { deps, calls } = fakeDeps(["gitleaks"], exited(0, "[]"));
     await createGitleaksRunner(deps)(ctx("/some dir; x"));
-    expect(calls[0]?.args).toEqual([
-      "dir",
-      "/some dir; x",
-      "--report-format",
-      "json",
-      "--report-path",
-      "-",
-      "--redact",
-      "--no-banner",
-      "--no-color",
-    ]);
+    const args = calls[0]?.args ?? [];
+    expect(args.slice(0, 2)).toEqual(["dir", "/some dir; x"]);
+    expect(args).toEqual(
+      expect.arrayContaining([
+        "--report-format",
+        "json",
+        "--report-path",
+        "-",
+        "--redact",
+        "--no-banner",
+        "--no-color",
+      ]),
+    );
+    // The project must not be able to configure (or silence) the scanner that checks it.
+    expect(args).toContain("--ignore-gitleaks-allow");
+    const config = args[args.indexOf("--config") + 1] ?? "";
+    expect(config).toMatch(/aegis-gitleaks-[^/\\]+[/\\]aegis\.toml$/);
+    expect(config.startsWith("/some dir")).toBe(false);
+  });
+
+  it("refuses to trust a scan when the project has a .gitleaksignore file, and does not even run gitleaks", async () => {
+    await withTempDir(async (root) => {
+      await writeFile(path.join(root, ".gitleaksignore"), "anything\n");
+      const { deps, calls } = fakeDeps(["gitleaks"], exited(0, "[]"));
+      const r = await createGitleaksRunner(deps)(ctx(root));
+      expect(r.outcome).toBe("tool-error");
+      expect(JSON.stringify(r)).toContain(".gitleaksignore");
+      expect(calls).toHaveLength(0);
+    });
+  });
+
+  it("cleans up its private config folder after every run", async () => {
+    const { deps, calls } = fakeDeps(["gitleaks"], exited(0, "[]"));
+    await createGitleaksRunner(deps)(ctx("/x"));
+    const args = calls[0]?.args ?? [];
+    const config = args[args.indexOf("--config") + 1] ?? "";
+    await expect(stat(path.dirname(config))).rejects.toThrow();
   });
 
   it("passes on exit 0 with an empty report", async () => {
@@ -124,7 +150,7 @@ describe("gitleaks adapter", () => {
       const f = r.findings[0]!;
       expect(f).toMatchObject({
         ruleId: "AEGIS-SEC-0003",
-        severity: "high",
+        severity: "critical",
         confidence: "medium",
         status: "finding",
         location: { file: "src/app.js", line: 7 },
@@ -143,7 +169,7 @@ describe("gitleaks adapter", () => {
       const r = await createGitleaksRunner(deps)(ctx(root));
       const byFile = Object.fromEntries(r.findings.map((f) => [f.location?.file, f]));
       expect(byFile[".env"]).toMatchObject({ status: "warning", severity: "low" });
-      expect(byFile["app.js"]).toMatchObject({ status: "finding", severity: "high" });
+      expect(byFile["app.js"]).toMatchObject({ status: "finding", severity: "critical" });
     });
   });
 

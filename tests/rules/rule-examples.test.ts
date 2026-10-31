@@ -3,12 +3,7 @@ import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { parse as parseYaml } from "yaml";
 import { describe, expect, it } from "vitest";
-import {
-  REVIEW_GATES,
-  loadRulesFromDir,
-  redactText,
-  type Rule,
-} from "../../packages/core/src/index.js";
+import { REVIEW_GATES, loadRulesFromDir, type Rule } from "../../packages/core/src/index.js";
 import { RULES_DIR, SEMGREP_RULES_FILE } from "../../packages/rules/src/index.js";
 
 /**

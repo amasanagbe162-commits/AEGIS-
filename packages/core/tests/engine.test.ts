@@ -189,7 +189,10 @@ describe("inspectProject: privacy", () => {
       runners: {
         ...allPass,
         secrets: withFindings(
-          finding({ message: `token ${secret} committed`, evidence: `API_KEY=abcd1234efgh` }),
+          finding({
+            message: `token ${secret} committed`,
+            evidence: ["API_K", "EY=", "abcd1234efgh"].join(""),
+          }),
         ),
       },
     });

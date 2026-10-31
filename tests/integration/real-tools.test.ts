@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,6 +79,50 @@ describe.skipIf(!hasGitleaks)("real gitleaks", () => {
     const dir = await temp();
     await writeFile(path.join(dir, "a.js"), "console.log('hello');\n");
     expect((await createGitleaksRunner(deps)(await context(dir))).outcome).toBe("passed");
+  });
+
+  // The project must not be able to configure, or silence, the scanner that checks it. Each of
+  // these is something a careless person or an AI agent could add in seconds to make a leak vanish.
+  describe("cannot be silenced by the project it scans", () => {
+    const leak = `const apiKey = "${fakeKey}";`;
+
+    it("an inline gitleaks:allow comment does not hide a secret", async () => {
+      const dir = await temp();
+      await writeFile(path.join(dir, "app.js"), `${leak} // gitleaks:allow\n`);
+      const r = await createGitleaksRunner(deps)(await context(dir));
+      expect(r.outcome).toBe("findings");
+      expect(r.findings[0]).toMatchObject({ status: "finding", severity: "critical" });
+    });
+
+    it("a project .gitleaks.toml allowlist does not hide a secret", async () => {
+      const dir = await temp();
+      await writeFile(path.join(dir, "app.js"), `${leak}\n`);
+      await writeFile(path.join(dir, ".gitleaks.toml"), "[allowlist]\npaths = ['''.*''']\n");
+      expect((await createGitleaksRunner(deps)(await context(dir))).outcome).toBe("findings");
+    });
+
+    it("a project .gitleaksignore file cannot hide a secret: the check refuses to give a result instead", async () => {
+      const dir = await temp();
+      await writeFile(path.join(dir, "app.js"), `${leak}\n`);
+      const first = await createGitleaksRunner(deps)(await context(dir));
+      expect(first.outcome).toBe("findings");
+      const line = first.findings[0]?.location?.line ?? 1;
+      // Gitleaks matches entries as <path>:<rule>:<line> using the absolute path AEGIS passes, so
+      // these entries really would hide the finding if the file were trusted (checked below).
+      const ruleIds = first.findings.map(
+        (f) => f.title.match(/\((.+)\)/)?.[1] ?? "generic-api-key",
+      );
+      const root = await realpath(dir);
+      const entries = ruleIds.flatMap((id) => [
+        `${dir}/app.js:${id}:${line}`,
+        `${root}/app.js:${id}:${line}`,
+      ]);
+      await writeFile(path.join(dir, ".gitleaksignore"), entries.join("\n") + "\n");
+      const r = await createGitleaksRunner(deps)(await context(dir));
+      expect(r.outcome).toBe("tool-error"); // never "passed"
+      expect(r.findings).toEqual([]);
+      expect(r.reason).toContain(".gitleaksignore");
+    });
   });
 });
 

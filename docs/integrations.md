@@ -91,9 +91,20 @@ Size budgets (enforced by tests): Claude and Copilot files up to 24 KiB, `AGENTS
 
 ## What is and is not tested
 
-- Tested: file generation, preservation of your files, symlink and race safety, refresh and verification logic, the hook's decisions, and the built `aegis` binary driving the hook over real standard input, including a blocking run against a stand-in scanner.
-- **Not tested:** a live session in Claude Code, Copilot, Codex or ChatGPT. File locations and the hook settings format follow each vendor's documentation at the time of writing. If an agent version ignores a file, `aegis agents print <agent>` gives you the text to place by hand.
-- Nothing here proves an agent follows its instructions. `aegis agents verify` checks files, not behavior.
+Automated tests run the **real agent command-line tools** (pinned versions, installed from npm at test time, no credentials) against files AEGIS generated: `tests/integration/agent-clis.test.ts`.
+
+| Agent                      | What was checked with the real tool                                                                                                                                  | What was not                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code 2.1.310        | It accepts the Stop-hook `settings.json` AEGIS writes without complaint, and the same check rejects a deliberately malformed hook, so the clean result is meaningful | That `.claude/rules/aegis.md` is loaded, and that the hook actually fires: both need a logged-in session                      |
+| OpenAI Codex 0.164.0       | `codex debug prompt-input` shows the AEGIS block inside the model-visible prompt, after the user's own `AGENTS.md` text                                              | That the model follows it                                                                                                     |
+| GitHub Copilot CLI 1.0.103 | `copilot instruction list` discovers `.github/instructions/aegis.instructions.md` next to the user's own `copilot-instructions.md`                                   | That the instructions reach the model and are followed. VS Code and the Copilot web and coding-agent surfaces were not tested |
+| ChatGPT                    | Nothing. It has no command-line tool, and its web settings cannot be inspected                                                                                       | Everything. The text is paste-in only; AEGIS cannot see what is configured in your account                                    |
+
+Also tested: file generation, preservation of your files, symlink and race safety, refresh and verification logic, the hook's decisions, and the built `aegis` binary driving the hook over real standard input.
+
+The exact hook command AEGIS registers, `npx --no-install aegis hook claude-stop`, was run through a real shell and `npx`: with AEGIS installed in the project it runs it; without AEGIS installed it **fails (exit 1, so Claude is not blocked) instead of running another package** that happens to be called `aegis`. In that case npm may request registry _metadata_ for the name `aegis` once, but it never requests or installs the package (tested against a local fake registry offering a decoy). Without `--no-install`, npm announces that it will install the decoy.
+
+Nothing here proves a model follows its instructions. `aegis agents verify` checks files, not behavior.
 
 ## Enforcement outside the agent
 

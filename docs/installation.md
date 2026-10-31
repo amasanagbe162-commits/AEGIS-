@@ -54,7 +54,7 @@ aegis init               # asks for a protection level and agent, then asks to c
 
 It never overwrites an existing file. If a file already exists it is kept as it is. In a script or CI (no terminal) it writes nothing unless you pass `--yes`.
 
-Agent instruction files (`CLAUDE.md`, Copilot instructions) are **not generated yet**. Your existing ones are never touched.
+`aegis init --agent <agent>` also generates instruction files for your AI agent (Claude Code, GitHub Copilot, OpenAI Codex, ChatGPT). Your existing `CLAUDE.md`, `.github/copilot-instructions.md` and `AGENTS.md` are never overwritten. See [integrations.md](integrations.md).
 
 ## Optional scanners
 
@@ -82,14 +82,19 @@ Then check them: `aegis rules validate AEGIS.aegis` and `aegis rules validate ae
 
 | Command                         | What it does                                                                                  |
 | ------------------------------- | --------------------------------------------------------------------------------------------- |
-| `aegis init [path]`             | Create the config and master file (`--dry-run`, `--yes`, `--level`, `--agent`).               |
+| `aegis init [path]`             | Create the config, master file and agent files (`--dry-run`, `--yes`, `--level`, `--agent`).  |
 | `aegis scan [path]`             | Full report: detection, rules, planned checks, findings, result (`--level`, `--format json`). |
 | `aegis check [path]`            | Same checks, compact output, for hooks and CI (`--allow-incomplete`).                         |
 | `aegis rules list`              | List bundled rules (`--category`, `--json`).                                                  |
 | `aegis rules validate [target]` | Validate a rule, a rules folder, an `.aegis` file, or a config file.                          |
 | `aegis doctor [path]`           | Diagnose Node.js, config, master file, bundled rules and optional tools. Changes nothing.     |
+| `aegis agents list              | sync                                                                                          | verify                                                                                      | print`                                                                                   | Generate, check and print instruction files for AI agents ([integrations.md](integrations.md)). |
+| `aegis hook claude-stop`        | Claude Code Stop hook entry point (not for manual use).                                       |
+| `aegis learn add                | list                                                                                          | show                                                                                        | amend                                                                                    | verify                                                                                          | review | supersede` | Reviewed project lessons ([learning.md](learning.md)). |
+| `aegis rules status             | update`                                                                                       | Which rules are in use; optional signed updates, off by default ([updates.md](updates.md)). |
+| `aegis rules keygen             | bundle                                                                                        | check-bundle`                                                                               | Maintainers: create a signing key, sign a bundle, verify one ([updates.md](updates.md)). |
 
-Not implemented yet: `aegis rules update` (planned for a later version).
+Run `aegis --help` and `aegis <command> --help` for every option.
 
 ## Optional scanners and the versions AEGIS was tested with
 

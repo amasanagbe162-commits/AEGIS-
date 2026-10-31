@@ -1,6 +1,6 @@
 # AEGIS Architecture
 
-Status: design document (Phase 1). Nothing described here as PLANNED exists yet.
+Status: design document, updated through Phase 10. Section 7 lists what exists, what is tested, and what is not. Parts of this document describe the original Phase 1 design.
 
 ## 1. Current repository state (inspected)
 
@@ -90,15 +90,16 @@ Key property: a skipped or failed check is a first-class result in the report. A
 
 ## 7. Feature status
 
-| Feature                                                                          | Status                                                                                                                                                  |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Monorepo, strict TypeScript, lint, tests, CI                                     | Implemented and tested                                                                                                                                  |
-| `.aegis` format, schemas, parser                                                 | PLANNED (Phase 2)                                                                                                                                       |
-| Starter rule library                                                             | PLANNED (Phase 2)                                                                                                                                       |
-| Project detection, selection, findings, reports                                  | PLANNED (Phase 3)                                                                                                                                       |
-| CLI commands                                                                     | PLANNED (Phase 4)                                                                                                                                       |
-| Scanner integrations (Gitleaks, Semgrep, npm audit, OSV-Scanner, tsc, ESLint)    | Implemented (Phase 5). Tested against real Gitleaks, Semgrep, npm and tsc. OSV-Scanner vulnerable output and ESLint were not verified against real runs |
-| Agent integrations (`@aegis/integrations`: Claude Code, Copilot, Codex, ChatGPT) | Implemented (Phase 6). File generation, safe writes and the Claude Stop hook are tested; behavior inside live agent sessions is untested                |
-| Learning records                                                                 | PLANNED (Phase 7)                                                                                                                                       |
-| Signed rule updates                                                              | PLANNED (Phase 8)                                                                                                                                       |
-| Documentation website                                                            | PLANNED (after core works)                                                                                                                              |
+| Feature                                                                          | Status                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo, strict TypeScript, lint, tests, CI                                     | Implemented and tested                                                                                                                                                                                   |
+| `.aegis` format, schemas, parser                                                 | Implemented and tested (including hostile-input tests)                                                                                                                                                   |
+| Starter rule library                                                             | 6 rules, approved by an AI-assisted review with executable example tests. A human maintainer has not yet confirmed them                                                                                  |
+| Project detection, selection, findings, reports                                  | Implemented and tested (JavaScript/TypeScript, Node, Next.js; Python and SQL rule selection)                                                                                                             |
+| CLI commands                                                                     | Implemented and tested                                                                                                                                                                                   |
+| Scanner integrations (Gitleaks, Semgrep, npm audit, OSV-Scanner, tsc, ESLint)    | Implemented. Verified against real Gitleaks 8.28.0, Semgrep 1.182.1, npm audit, tsc, ESLint 9 and OSV-Scanner 2.2.2 (OSV vulnerable output from a locally built advisory database, not the live service) |
+| Agent integrations (`@aegis/integrations`: Claude Code, Copilot, Codex, ChatGPT) | Implemented. Verified with the real Claude Code, Codex and Copilot CLIs where they allow it without a login (see integrations.md). ChatGPT is manual and untestable. No live model session was run       |
+| Learning records                                                                 | Implemented and tested                                                                                                                                                                                   |
+| Signed rule updates and the signing workflow                                     | Implemented and tested. No official signing key exists yet                                                                                                                                               |
+| macOS and Windows                                                                | Untested. CI jobs exist to test them                                                                                                                                                                     |
+| Documentation website                                                            | Deliberately not built                                                                                                                                                                                   |

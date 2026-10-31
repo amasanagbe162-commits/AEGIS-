@@ -58,17 +58,49 @@ There is **no built-in official signing key yet**. `TRUSTED_KEYS` in `packages/r
 
 There is no revocation list yet. If a key is compromised, remove it from `trustedKeys` (and from `TRUSTED_KEYS` in a release); bundles signed after rotation use a new key id.
 
-## Publishing (maintainers)
+## The official signing workflow
+
+This is the process for the project owner. It is implemented and tested, but the key itself does not exist yet, because a signing key must be created and held by a person you trust, not generated inside a development sandbox or a repository.
+
+1. **Create the key on a trusted machine, outside any repository.**
+
+   ```bash
+   aegis rules keygen --out-dir ~/aegis-keys --key-id aegis-2026
+   ```
+
+   The private key is written to `~/aegis-keys/aegis-2026.private.pem` with owner-only permissions and is never printed. `keygen` **refuses to write inside a Git repository** (override only with `--allow-in-repo`, which you should not use) and never overwrites an existing key. Keep a backup in a password manager or hardware vault. If you lose the key you cannot sign updates; if someone else gets it they can.
+
+2. **Trust the public key in the code.** Add the public key that `keygen` printed to `TRUSTED_KEYS` in `packages/rules/src/index.ts` and merge it through a reviewed pull request. Only this public key is ever committed.
+
+3. **Give the release workflow the private key, and nobody else.** In GitHub: create an environment named `release-signing`, require reviewers for it, then add the private key file's text as the environment **secret** `AEGIS_RULES_SIGNING_KEY` and the key id as the environment **variable** `AEGIS_RULES_KEY_ID`. Do not use a repository-wide secret.
+
+4. **Sign a release.** Run the "Sign rule bundle" workflow (`.github/workflows/sign-rules.yml`) with the new `bundle_version`. It validates the rules, signs them, verifies the result with `aegis rules check-bundle` against the keys built into AEGIS, and attaches the bundle to that workflow run as an artifact. It **never publishes, pushes or tags anything**.
+
+5. **Publish deliberately.** Download the artifact, check the version, and host it over HTTPS wherever you choose. Users who set `updates.source` to that address (and trust your key) receive it.
+
+What protects the key:
+
+| Risk                              | Control                                                                                                                                                                                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key committed to Git              | `keygen` refuses to write inside a repository; `.gitignore` blocks `*.pem`, `*.private.pem`, `*.key`, `*.p12`; a test fails if any file in the repository contains a private-key block; CI scans the working tree and the full history with Gitleaks |
+| Key leaked from CI logs           | The workflow reads the secret only through an `env` block, writes it to an owner-only temporary file, deletes it on exit, and never echoes it (a test checks this and fails if the workflow is changed to print it)                                  |
+| Anyone running the workflow       | It runs only on manual dispatch, in an environment that requires reviewer approval, with read-only repository permissions                                                                                                                            |
+| A workflow that quietly publishes | A test fails if any workflow contains `npm publish`, `git push`, a release action or a write permission                                                                                                                                              |
+| A bundle signed by the wrong key  | `check-bundle` runs in the workflow against the keys compiled into AEGIS and fails otherwise                                                                                                                                                         |
+
+**Rotation and compromise.** Create a new key with a new id, add its public key to `TRUSTED_KEYS`, sign with it, and remove the old public key in the next release. If a key may be compromised, remove its public key immediately and release a new AEGIS version; users on older versions keep trusting the old key until they upgrade (there is no revocation list yet), and teams that listed the key in their own `updates.trustedKeys` must remove it themselves.
+
+## Other ways to publish a bundle (maintainers)
+
+You can also sign by hand on your trusted machine:
 
 ```bash
-aegis rules keygen --out-dir ~/aegis-keys --key-id aegis-2026   # private key stays on this machine, offline
 aegis rules bundle --key ~/aegis-keys/aegis-2026.private.pem --key-id aegis-2026 \
-  --bundle-version 0.2.0 --out aegis-rules-0.2.0.json            # signs and self-verifies
+  --bundle-version 0.3.0 --out aegis-rules-0.3.0.json
+aegis rules check-bundle aegis-rules-0.3.0.json    # needs the key in TRUSTED_KEYS, or --trust aegis-2026=<public key>
 ```
 
-Then host the file over HTTPS (for example a GitHub release asset). `keygen` and `bundle` never overwrite files, never print the private key, and `bundle` refuses to sign rules that do not validate. Keep the private key out of Git, CI logs and chat; anyone who has it can publish rules that every user who trusts the key will accept.
-
-Remember to bump `BASELINE_RULES_VERSION` when the rules shipped inside a release change, so installed updates are compared against the right baseline.
+`bundle` never overwrites files, refuses to sign rules that do not validate, and checks its own output. Remember to bump `BASELINE_RULES_VERSION` when the rules shipped inside a release change, so installed updates are compared against the right baseline.
 
 ## What is not implemented
 

@@ -1,0 +1,5 @@
+# Reviewed false positives in git HISTORY only: fictional strings that redaction tests used to contain literally.
+# None is a real credential. Use with: gitleaks git . --gitleaks-ignore-path .github/gitleaks-history.ignore
+5dbfa0c13706bb4c7cb776219d5747cff195af5a:packages/core/tests/engine.test.ts:generic-api-key:172
+5dbfa0c13706bb4c7cb776219d5747cff195af5a:packages/core/tests/redaction.test.ts:generic-api-key:33
+5dbfa0c13706bb4c7cb776219d5747cff195af5a:packages/core/tests/redaction.test.ts:generic-api-key:60
